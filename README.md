@@ -3,7 +3,7 @@
 <p align="center">
 <img src="https://avatars3.githubusercontent.com/u/6615685?s=200&v=4" width=128 height=128>
 +
-<img src="https://github.com/sammyfreg/netImgui/blob/master/Web/img/netImguiLogo.png" width=128 height=128>
+<img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/netImguiLogo.png" width=128 height=128>
 </p>
 
 # Summary
