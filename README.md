@@ -20,18 +20,17 @@ This plugin allows **UE4** users to remotely connect to their game and display [
 > **Note 2:** This is a useful plugin when **Dear ImGui** is not already supported in your UE4 engine codebase. Otherwise, it is possible to ignore this plugin and directly add [**NetImgui's**](https://github.com/sammyfreg/netImgui "NetImgui") client code alongside your **Dear ImGui's** code. The **Unreal 4** networking is already supported.
 
 # Integration
- - Download and copy the **UnrealNetImgui** folder to **Unreal Engine**'s Plugin directory (`.\Engine\Plugins`)
- - Regenerate your project solution to have the new plugin included *(right-click [ProjectName].uproject-> Generate Visual Studio Project Files)*
- - In your game project `(ProjectName).Build.cs` file, add the `NetImgui` dependency to `PublicDependencyModuleNames` entries.
- - In editor, enable the plugin `2D\NetImgui`.
- - Start the (`UnrealNetImgui\NetImguiServer\NetImguiServer.exe`) application.
+ 1. Download and copy the **UnrealNetImgui** folder to **Unreal Engine**'s Plugin directory (`.\Engine\Plugins`)
+ 1. Regenerate your project solution to have the new plugin included *(right-click [ProjectName].uproject-> Generate Visual Studio Project Files)*
+ 1. In your game project `(ProjectName).Build.cs` file, add the `NetImgui` dependency to `PublicDependencyModuleNames` entries.
+ 1. In editor, enable the plugin `2D\NetImgui`.
+ 1. Start the (`UnrealNetImgui\NetImguiServer\NetImguiServer.exe`) application.
   - **Dear ImGui's** menu content created in your code, will be displayed and controlled in it (after establishing a connection).
   - The config file comes pre-configured with 2 clients configuration (game and editor running on the same PC). For remote PCs, game consoles or others, create a new client configuration with proper address settings.
- - Anywhere where code is running on the Game Thread, you can now make standard **Dear ImGui** drawing commands to generate your menus. 
+ 1. Anywhere where code is running on the Game Thread, you can now make standard **Dear ImGui** drawing commands to generate your menus. 
   - The define `NETIMGUI_ENABLED` allows to selectively disable code if planning to disable **NetImgui** on certain game configuration (shipping, ...)
- - If wanting to use in editor, make sure to unselect the option `Edit->Editor Preferences->General->Performances->Use Less CPU when in Background`, otherwise framerate will be low when using the netImguiServer window.
- - By default, tne plugin is compiled with **FrameSkip** supported. This saves CPU but require a test before drawing. This means that the **Dear ImGui** functions should only be used when `FNetImguiModule::IsDrawing()` is true *(assert otherwise)*. This can be disabled with `bSupportFrameSkip` in `NetImgui.Build.cs`.
- 
+  - By default, the plugin is compiled with **FrameSkip** supported. This saves CPU but require a test before drawing. This means that the **Dear ImGui** functions should only be used when `FNetImguiModule::IsDrawing()` is true *(assert otherwise)*. This can be disabled with `bSupportFrameSkip` in `NetImgui.Build.cs`.
+ 1. If wanting to use in editor, make sure to unselect the option `Edit->Editor Preferences->General->Performances->Use Less CPU when in Background`, otherwise framerate will be low when using the netImguiServer window.
 # Example
 
 Code example of **Dear ImGui** to display a very basic menu from the `Tick()` method of an actor.
