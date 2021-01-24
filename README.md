@@ -44,10 +44,10 @@ Code example of **Dear ImGui** to display a very basic menu from the `Tick()` me
 // ...
 void AMyImGuiActor::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
 
 #if NETIMGUI_ENABLED
- 	//---------------------------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------------------
     // Avoid drawing ImGui menus when not expecting a new frame, reducing CPU cost.
     // Mandatary when 'bSupportFrameSkip' is emabled in 'NetImgui.Build.cs', otherwise
     // 'Dear ImGui' will assert on a missing 'ImGui::NewFrame()'
@@ -62,12 +62,12 @@ void AMyImGuiActor::Tick(float DeltaTime)
         if( sLastFrame != GFrameCounter )
         {
             sLastFrame = GFrameCounter;
-			ImGui::Begin("NetImgui Demo");
-			ImGui::TextWrapped("Simple display of a text label");
-			ImGui::End();
-			ImGui::ShowDemoWindow();
-		}
-	}
+            ImGui::Begin("NetImgui Demo");
+            ImGui::TextWrapped("Simple display of a text label");
+            ImGui::End();
+            ImGui::ShowDemoWindow();
+        }
+    }
 #endif
 }
 ```
