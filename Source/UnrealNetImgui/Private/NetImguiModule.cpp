@@ -4,6 +4,13 @@
 #include "CoreMinimal.h"
 #include <Interfaces/IPluginManager.h>
 
+// Binary Font converted to c data array (using Dear Imgui 'binary_to_compressed_c.cpp')
+#include "Fonts/Roboto_Medium.cpp"
+#include "Fonts/Cousine_Regular.cpp"
+#include "Fonts/Droid_Sans.cpp"
+#include "Fonts/Karla_Regular.cpp"
+#include "Fonts/Proggy_Tiny.cpp"
+
 #define LOCTEXT_NAMESPACE "FNetImguiModule"
 IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 
@@ -12,19 +19,38 @@ void FNetImguiModule::StartupModule()
 #if NETIMGUI_ENABLED
 	NetImgui::Startup();
 	
+	//---------------------------------------------------------------------------------------------
+	// Load our Font
+	ImFontConfig Config;
 	ImGui::SetCurrentContext(ImGui::CreateContext());
 	ImGuiIO& io = ImGui::GetIO();
+
+	// Must be laoded in same order as FNetImguiModule::eFont enum
 	io.Fonts->AddFontDefault();
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "RobotoMedium");
+    io.Fonts->AddFontFromMemoryCompressedTTF(Roboto_Medium_compressed_data,		Roboto_Medium_compressed_size,		16.0f, &Config);
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "CousineRegular");
+    io.Fonts->AddFontFromMemoryCompressedTTF(Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	15.0f, &Config);
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "KarlaRegular");
+	io.Fonts->AddFontFromMemoryCompressedTTF(Karla_Regular_compressed_data,		Karla_Regular_compressed_size,		16.0f, &Config);
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "DroidSans");
+    io.Fonts->AddFontFromMemoryCompressedTTF(Droid_Sans_compressed_data,		Droid_Sans_compressed_size,			16.0f, &Config);
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "ProggyTiny");
+	io.Fonts->AddFontFromMemoryCompressedTTF(Proggy_Tiny_compressed_data,		Proggy_Tiny_compressed_size,		10.0f, &Config);
+
+	// ... add extra fonts here (and add extra entry in 'FNetImguiModule::eFont' enum)
+
 	io.Fonts->Build();
+	//---------------------------------------------------------------------------------------------
 
-	unsigned char* Pixels;
-	int Width, Height, Bpp;
-	io.Fonts->GetTexDataAsAlpha8(&Pixels, &Width, &Height, &Bpp);
-	NetImgui::SendDataTexture(0, Pixels, Width, Height, NetImgui::eTexFormat::kTexFmtA8);
 
+	//---------------------------------------------------------------------------------------------
 	// Setup connection to wait for netImgui server to reach us
+	// Note:	The default behaviour is for the Game Client to wait for connection from the NetImgui Server.
+	//			It is possible to connect directly to the NetImgui Server insted, using 'NetImgui::ConnectToApp'
 	FString sessionName = FString::Format(TEXT("{0}-{1}"), { FApp::GetProjectName(), FPlatformProcess::ComputerName() });
-	NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), FApp::IsGame() ? NETIMGUI_LISTENPORT_GAME : NETIMGUI_LISTENPORT_EDITOR, false);
+	NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), FApp::IsGame() ? NETIMGUI_LISTENPORT_GAME : NETIMGUI_LISTENPORT_EDITOR);
+	//---------------------------------------------------------------------------------------------
 
 	FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
 #endif
@@ -47,9 +73,49 @@ void FNetImguiModule::Update()
 	if( NetImgui::IsDrawing() )
 		NetImgui::EndFrame();
 
-	NetImgui::NewFrame();	
+#if NETIMGUI_USE_FRAMESKIP //Not interested in drawing menu until connection established
+	if( NetImgui::IsConnected() )
+#endif
+	{
+		NetImgui::NewFrame(NETIMGUI_USE_FRAMESKIP);
+	}
 #endif
 }
+
+void FNetImguiModule::setDefaultFont(eFont font)
+{
+#if NETIMGUI_ENABLED
+	check(font < eFont::_Count);
+	ImFont* pFont				= font < eFont::_Count ? ImGui::GetIO().Fonts->Fonts[static_cast<int>(font)] : nullptr;
+	ImGui::GetIO().FontDefault = pFont ? pFont : ImGui::GetIO().FontDefault;
+#endif
+}
+
+void FNetImguiModule::pushFont(eFont font)
+{
+#if NETIMGUI_ENABLED
+	check(font < eFont::_Count);
+	ImFont* pFont = font < eFont::_Count ? ImGui::GetIO().Fonts->Fonts[static_cast<int>(font)] : nullptr;
+	ImGui::PushFont(pFont ? pFont : ImGui::GetFont());
+#endif
+}
+
+void FNetImguiModule::popFont()
+{
+#if NETIMGUI_ENABLED
+	ImGui::PopFont();
+#endif
+}
+
+bool FNetImguiModule::isDrawing()
+{
+#if NETIMGUI_ENABLED
+	return NetImgui::IsDrawing();
+#else
+	return false;
+#endif
+}
+
 #undef LOCTEXT_NAMESPACE
 
 
