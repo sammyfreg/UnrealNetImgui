@@ -65,6 +65,10 @@ public class NetImgui : ModuleRules
 		// NetImgui Server will try to find running editor client on this port and connect to them
 		string kEditorListenPort	= "(NetImgui::kDefaultClientPort+1)";
 
+		// Com Port used by Dedicated Server exe to wait for a connection from netImgui Server (8891 by default)
+		// NetImgui Server will try to find running dedicaed server client on this port and connect to them
+		string kDedicatedServerListenPort = "(NetImgui::kDefaultClientPort+2)";
+
 		// Developer modules are automatically loaded only in editor builds but can be stripped out from other builds.
 		// Enable runtime loader, if you want this module to be automatically loaded in runtime builds (monolithic).
 		bool bEnableRuntimeLoader = true;
@@ -87,7 +91,8 @@ public class NetImgui : ModuleRules
 		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_ACTOR_ENABLED={0}", bDemoActor_Enabled ? 1 : 0));		
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_GAME=" + kGameListenPort);
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_EDITOR=" + kEditorListenPort);
-
+		PublicDefinitions.Add("NETIMGUI_LISTENPORT_DEDICATED_SERVER=" + kDedicatedServerListenPort);
+		
 		PrivateDefinitions.Add("NETIMGUI_WINSOCKET_ENABLED=0");      // Using Unreal sockets, no need for built-in sockets
 		PrivateDefinitions.Add("NETIMGUI_POSIX_SOCKETS_ENABLED=0");  // Using Unreal sockets, no need for built-in sockets
 		PrivateDefinitions.Add(string.Format("RUNTIME_LOADER_ENABLED={0}", bEnableRuntimeLoader ? 1 : 0));
