@@ -73,9 +73,9 @@ void AMyImGuiActor::Tick(float DeltaTime)
 ```
 
 # Release notes
- - Upgraded to **Dear Imgui 1.80** (table support added)
- - Upgraded to [**NetImgui 1.3**](https://github.com/sammyfreg/netImgui "NetImgui") (more details in link).
- - Tested on **Unreal 4.26** (other versions should be supported without issues)
+ - Upgraded to **Dear Imgui 1.80** *(docking branch and table support)*
+ - Upgraded to [**NetImgui 1.3**](https://github.com/sammyfreg/netImgui "NetImgui") *(more details in link)*
+ - Tested on **Unreal 4.26** *(other versions should be supported without issues)*
  - Added various font support
  - Improved Server UI for better handling of multiple clients
  
