@@ -18,7 +18,7 @@ using UnrealBuildTool;
 //-------------------------------------------------------------------------------------------------
 //
 // Dear ImGui Library	: v1.80.0	(https://github.com/ocornut/imgui)
-// NetImGui Library		: v1.3.0	(https://github.com/sammyfreg/netImgui)
+// NetImGui Library		: v1.3.1	(https://github.com/sammyfreg/netImgui)
 //=================================================================================================
 
 public class NetImgui : ModuleRules
@@ -61,35 +61,31 @@ public class NetImgui : ModuleRules
 		// Com Port used by Editor exe to wait for a connection from netImgui Server (8890 by default)
 		// NetImgui Server will try to find running editor client on this port and connect to them
 		string kEditorListenPort	= "(NetImgui::kDefaultClientPort+1)";
-		//---------------------------------------------------------------------
-
-		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "../ThirdParty/ImGuiLib/Source"));
-		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "../ThirdParty/NetImguiLib/Source"));
-
-		PublicDependencyModuleNames.AddRange( new string[] { "Core", "Projects"} );
-		PrivateDependencyModuleNames.AddRange( new string[] { "CoreUObject", "Engine", "Sockets" } );
 
 		// Developer modules are automatically loaded only in editor builds but can be stripped out from other builds.
 		// Enable runtime loader, if you want this module to be automatically loaded in runtime builds (monolithic).
-		//bool bEnableRuntimeLoader = true;
-		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		//bUseUnity = true; // Disable to test build
+		bool bEnableRuntimeLoader = true;
+		//---------------------------------------------------------------------
 
+		PublicDependencyModuleNames.AddRange( new string[] { "Core", "Projects"} );
+		PrivateDependencyModuleNames.AddRange( new string[] { "CoreUObject", "Engine", "Sockets" } );
+		PCHUsage = PCHUsageMode.NoPCHs;
+		
 #if UE_4_24_OR_LATER
 		bLegacyPublicIncludePaths = false;
 		ShadowVariableWarningLevel = WarningLevel.Error;
 		bTreatAsEngineModule = true;
 #endif
-
 		//---------------------------------------------------------------------
 		// Setup Environment to build with/without netImgui
 		//---------------------------------------------------------------------
 		PublicDefinitions.Add(string.Format("NETIMGUI_ENABLED={0}", bUseNetImgui ? 1 : 0));
-		PublicDefinitions.Add(string.Format("NETIMGUI_USE_FRAMESKIP={0}", bSupportFrameSkip ? 1 : 0));
-		PublicDefinitions.Add("IMGUI_API=DLLEXPORT");
+		PublicDefinitions.Add(string.Format("NETIMGUI_USE_FRAMESKIP={0}", bSupportFrameSkip ? 1 : 0));		
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_GAME=" + kGameListenPort);
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_EDITOR=" + kEditorListenPort);
+
 		PrivateDefinitions.Add("NETIMGUI_WINSOCKET_ENABLED=0");      // Using Unreal sockets, no need for built-in sockets
 		PrivateDefinitions.Add("NETIMGUI_POSIX_SOCKETS_ENABLED=0");  // Using Unreal sockets, no need for built-in sockets
+		PrivateDefinitions.Add(string.Format("RUNTIME_LOADER_ENABLED={0}", bEnableRuntimeLoader ? 1 : 0));
 	}
 }

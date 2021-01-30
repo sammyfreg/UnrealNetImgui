@@ -9,8 +9,7 @@
 #endif
 
 #if NETIMGUI_ENABLED
-#include <../../ThirdParty/ImGuiLib/Source/imgui.h>
-#include <../../ThirdParty/NetImguiLib/Source/NetImgui_Api.h>
+	#include "../Private/ThirdParty/DearImgui/imgui.h"
 #endif
 
 class FNetImguiModule : public IModuleInterface

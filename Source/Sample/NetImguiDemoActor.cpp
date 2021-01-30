@@ -1,16 +1,16 @@
 //=================================================================================================
-// NetImgui Demo Actor
+// NetImguiDemo Actor
 //-------------------------------------------------------------------------------------------------
-// Example of using 'NetImgui' with 'Dear ImGui' inside an Actor class. 
+// Example of using 'NetImgui' with 'Dear ImGui' inside an Actor class. Just drop actors of this 
+// class, in your scene, to see the demo 'Dear ImGui' content appear on the server.
 //
-// The sources files are not compiled nor needed by the 'UnrealNetImgui' Plugin, it is only here 
-// to help integrating it to your own codebase. 
-//
-// The 'Dear ImGui' draws can be done from anywhere in the engine, on the GameThread, not limited 
-// to 'AActor::Tick()' or an Actor class.
+// The 'Dear ImGui' draws can be done from anywhere in the engine, on the GameThread, 
+// and not limited to 'AActor::Tick()' or an Actor class.
+// 
+// !!! This class is not needed to use Dear ImGui / NetImgui (just an example) !!!
 //=================================================================================================
 
-#include "NetImguiActor.h"
+#include "NetImguiDemoActor.h"
 #include <NetImguiModule.h>
 
 #if NETIMGUI_ENABLED
@@ -21,8 +21,7 @@ const ImVec4 kHighlightColor(0.1f, 1.f, 0.1f, 1.f);
 //=================================================================================================
 void ShowScopedFont(FNetImguiModule::eFont font)
 {
-    // This will automatically change the current font, 
-    // and restore to previous value once out of scope
+    // This will automatically change the current font, and restore to previous value once out of scope
     NetImguiScopedFont scopedFont(font); 
     
     // Display Font name and sample text filler
@@ -30,18 +29,19 @@ void ShowScopedFont(FNetImguiModule::eFont font)
     ImGui::TextColored(kHighlightColor, "Font: %s", ImGui::GetFont()->GetDebugName());
     ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.");
 }
-
 #endif
-
 
 //=================================================================================================
 // Sample ImGui Drawing code.
 //-------------------------------------------------------------------------------------------------
 // For more info on what can be done with 'Dear ImGui' please look at the content of
-// 'ImGui::ShowDemoWindow()' in '"UnrealNetImgui\Source\ThirdParty\ImGuiLib\Source\imgui_demo.cpp'
+// 'ImGui::ShowDemoWindow()' in 'UnrealNetImgui\Source\Private\ThirdParty\DearImgui\imgui_demo.cpp'
 // and in its repository 'https://github.com/ocornut/imgui'
+// 
+// 'UnrealNetImgui\Source\Private\ThirdParty\DearImgui\imgui.h' has all the UI methods than can 
+// be used to draw menus.
 //=================================================================================================
-void ANetImguiActor::Tick(float DeltaTime)
+void ANetImguiDemoActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 #if NETIMGUI_ENABLED
@@ -76,14 +76,14 @@ void ANetImguiActor::Tick(float DeltaTime)
                 ShowScopedFont(FNetImguiModule::eFont::kRobotoMedium);
 
                 ImGui::NewLine();
-                ImGui::TextColored(kHighlightColor, "List of NetImguiActors");
+                ImGui::TextColored(kHighlightColor, "List of NetImguiDemo Actors");
             }
             ImGui::End();
             ImGui::ShowDemoWindow();
         }
 
         //-----------------------------------------------------------------------------------------
-        // Every 'ANetImguiActor' display the following content
+        // Every 'ANetImguiDemoActor' display the following content
         //-----------------------------------------------------------------------------------------
         if (ImGui::Begin("NetImgui Client test"))
         {
@@ -93,4 +93,3 @@ void ANetImguiActor::Tick(float DeltaTime)
     }
 #endif
 }
-

@@ -14,6 +14,15 @@
 
 #pragma once
 
+//=================================================================================================
+// Need to have the Imgui functions exported outside the UnrealNetImgui Plugin's Dll.
+// Unreal build system automatically define the appropriate dll export value in 'NETIMGUI_API' 
+// (because of NetImgui.build.cs filename). Dear ImGui expects a the define IMGUI_API
+// to know how to export its code, so we are relying on the value provided by Unreal.
+#include <Modules/ModuleManager.h>
+#define IMGUI_API NETIMGUI_API
+//=================================================================================================
+
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block so it can be used as a single statement.
 //#define IM_ASSERT(_EXPR)  MyAssert(_EXPR)

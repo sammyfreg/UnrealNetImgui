@@ -3,6 +3,8 @@
 #include "NetImguiModule.h"
 #include "CoreMinimal.h"
 #include <Interfaces/IPluginManager.h>
+#include "Misc/App.h"
+#include "Misc/CoreDelegates.h"
 
 // Binary Font converted to c data array (using Dear Imgui 'binary_to_compressed_c.cpp')
 #include "Fonts/Roboto_Medium.cpp"
@@ -11,6 +13,10 @@
 #include "Fonts/Karla_Regular.cpp"
 #include "Fonts/Proggy_Tiny.cpp"
 
+#if NETIMGUI_ENABLED
+#include "ThirdParty/NetImgui/NetImgui_Api.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "FNetImguiModule"
 IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 
@@ -18,24 +24,24 @@ void FNetImguiModule::StartupModule()
 {
 #if NETIMGUI_ENABLED
 	NetImgui::Startup();
-	
-	//---------------------------------------------------------------------------------------------
-	// Load our Font
-	ImFontConfig Config;
+		
 	ImGui::SetCurrentContext(ImGui::CreateContext());
 	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-	// Must be laoded in same order as FNetImguiModule::eFont enum
+	//---------------------------------------------------------------------------------------------
+	// Load our Font (Must be loaded in same order as FNetImguiModule::eFont enum)
+	ImFontConfig Config;
 	io.Fonts->AddFontDefault();
-	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "RobotoMedium");
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "Roboto Medium, 16px");
     io.Fonts->AddFontFromMemoryCompressedTTF(Roboto_Medium_compressed_data,		Roboto_Medium_compressed_size,		16.0f, &Config);
-	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "CousineRegular");
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "Cousine Regular, 15px");
     io.Fonts->AddFontFromMemoryCompressedTTF(Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	15.0f, &Config);
-	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "KarlaRegular");
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "Karla Regular, 16px");
 	io.Fonts->AddFontFromMemoryCompressedTTF(Karla_Regular_compressed_data,		Karla_Regular_compressed_size,		16.0f, &Config);
-	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "DroidSans");
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "Droid Sans, 16px");
     io.Fonts->AddFontFromMemoryCompressedTTF(Droid_Sans_compressed_data,		Droid_Sans_compressed_size,			16.0f, &Config);
-	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "ProggyTiny");
+	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), "Proggy Tiny, 10px");
 	io.Fonts->AddFontFromMemoryCompressedTTF(Proggy_Tiny_compressed_data,		Proggy_Tiny_compressed_size,		10.0f, &Config);
 
 	// ... add extra fonts here (and add extra entry in 'FNetImguiModule::eFont' enum)
@@ -117,6 +123,3 @@ bool FNetImguiModule::isDrawing()
 }
 
 #undef LOCTEXT_NAMESPACE
-
-
-

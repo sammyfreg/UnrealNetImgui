@@ -5,9 +5,9 @@
 // Also suppress a few warnings imgui.h generates in 'warning All' (-Wall)
 //=================================================================================================
 #include "Private/NetImgui_WarningDisableImgui.h" 
-#include "../../ImGuiLib/Source/imgui.h"
+#include "../DearImgui/imgui.h"
 #ifdef NETIMGUI_INTERNAL_INCLUDE
-#include "../../ImGuiLib/Source/imgui_internal.h"
+#include "../DearImgui/imgui_internal.h"
 #endif
 #include "Private/NetImgui_WarningReenable.h"
 
