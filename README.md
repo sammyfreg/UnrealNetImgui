@@ -9,15 +9,15 @@
 # Summary
 ### [Unreal Engine 4's](https://github.com/EpicGames) support of [NetImgui 1.3](https://github.com/sammyfreg/netImgui "NetImgui").
 
-**NetImgui** is a library to remotely display and control **Dear ImGui** menus with an associated netImgui server application. 
+**NetImgui** is a library to remotely display and control **Dear ImGui** menus with a connected NetImgui server application. 
 
 This plugin allows **UE4** users to remotely connect to their game and display [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui")'s generated menus in a separate window. The game can be running on a different computer or even a different platform such as console, cellpone, etc...
 
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/netImgui.png)
 
-> **Note 1:** Allows a very simple use of **NetImgui** in **Unreal Engine 4**. To support more complex usage, with **Dear ImGui** content displayed locally on the game screen, please take a look at the excellent [**UnrealImGui**](https://github.com/segross/UnrealImGui/tree/net_imgui) plugin. It also has netImgui support integrated.
+> **Note 1:** Allows a very simple use of **NetImgui** in **Unreal Engine 4**. To support more complex usage, with **Dear ImGui** content displayed locally on the game screen, please take a look at the excellent [**UnrealImGui**](https://github.com/segross/UnrealImGui/tree/net_imgui) plugin. It also has NetImgui support integrated.
 
-> **Note 2:** This is a useful plugin when **Dear ImGui** is not already supported in your UE4 engine codebase. Otherwise, it is possible to ignore this plugin and directly add [**NetImgui's**](https://github.com/sammyfreg/netImgui "NetImgui") client code alongside your **Dear ImGui's** code. The **Unreal 4** networking is already supported.
+> **Note 2:** This is a useful plugin when **Dear ImGui** is not already supported in your UE4 engine codebase. Otherwise, it is possible to ignore this plugin and directly add [**NetImgui's**](https://github.com/sammyfreg/netImgui "NetImgui") client code alongside your **Dear ImGui's** code. 
 
 # Integration
  1. Download and copy the **UnrealNetImgui** folder to **Unreal Engine**'s Plugin directory (`.\Engine\Plugins`)
@@ -25,17 +25,18 @@ This plugin allows **UE4** users to remotely connect to their game and display [
  1. In your game project `(ProjectName).Build.cs` file, add the `NetImgui` dependency to `PublicDependencyModuleNames` entries.
  1. In editor, enable the plugin `2D\NetImgui`.
  1. Start the (`UnrealNetImgui\NetImguiServer\NetImguiServer.exe`) application.
-  - **Dear ImGui's** menu content created in your code, will be displayed and controlled in it (after establishing a connection).
-  - The config file comes pre-configured with 2 clients configuration (game and editor running on the same PC). For remote PCs, game consoles or others, create a new client configuration with proper address settings.
- 1. Anywhere where code is running on the Game Thread, you can now make standard **Dear ImGui** drawing commands to generate your menus. 
-  - The define `NETIMGUI_ENABLED` allows to selectively disable code if planning to disable **NetImgui** on certain game configuration (shipping, ...)
-  - By default, the plugin is compiled with **FrameSkip** supported. This saves CPU but require a test before drawing. This means that the **Dear ImGui** functions should only be used when `FNetImguiModule::IsDrawing()` is true *(assert otherwise)*. This can be disabled with `bSupportFrameSkip` in `NetImgui.Build.cs`.
- 1. If wanting to use in editor, make sure to unselect the option `Edit->Editor Preferences->General->Performances->Use Less CPU when in Background`, otherwise framerate will be low when using the netImguiServer window.
+  - **Dear ImGui's** menu content created in your code, will be displayed and controlled in it (after a connection is established).
+  - The client list comes pre-configured with 2 clients configuration (game and editor running on the same PC). For remote PCs, game consoles or others, create a new client configuration with proper address settings.
+ 1. Any code running on the Game Thread, can now make standard **Dear ImGui** drawing commands to generate your menus.
+  - The define `NETIMGUI_ENABLED` allows to selectively disable code if planning to disable **NetImgui** on certain game configurations (shipping, ...)
+  - By default, the plugin is compiled with **FrameSkip** support. This saves CPU but require a test before drawing. This means that the **Dear ImGui** functions should only be used when `FNetImguiModule::IsDrawing()` is true *(assert otherwise)*. This can be disabled with `bFrameSkip_Enabled` in `NetImgui.Build.cs`.
+ 1. If wanting to use in editor, make sure to unselect the option `Edit->Editor Preferences->General->Performances->Use Less CPU when in Background`, otherwise framerate will be low when focus is on the NetImguiServer window instead of the Unreal Editor.
 # Example
 
 Code example of **Dear ImGui** to display a very basic menu from the `Tick()` method of an actor.
  - A slightly more complex sample can be found in `UnrealNetImgui\Source\Sample`
- - Information on [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui") menu generation, can be found reading the code of `ImGui::ShowDemoWindow()` in `UnrealNetImgui\Source\ThirdParty\ImGuiLib\Source\imgui_demo.cpp` and their webpage.
+ - The sample code is the actor `Net Imgui Demo Actor` that can be dropped in any of your scenes.
+ - Information on [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui") menu generation, can be found reading the code of `ImGui::ShowDemoWindow()` in `UnrealNetImgui\Source\Private\ThirdParty\DearImgui\imgui_demo.cpp` and their webpage.
 
 ```cpp
 // ...
