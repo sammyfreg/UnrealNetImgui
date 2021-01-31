@@ -7,7 +7,7 @@
 // The 'Dear ImGui' draws can be done from anywhere in the engine (on the GameThread),
 // and not limited to 'AActor::Tick()' or an Actor class.
 // 
-// !!! This class is not needed to use Dear ImGui / NetImgui (just an example) !!!
+// !!! This class is not needed to use Dear ImGui / NetImgui, it is here as an example !!!
 //=================================================================================================
 #pragma once
 
@@ -19,16 +19,17 @@ UCLASS()
 class NETIMGUI_API ANetImguiDemoActor : public AActor
 {
 	GENERATED_BODY()
-	
+
 public:	
 	// Sets default values for this actor's properties
-	ANetImguiDemoActor(){ PrimaryActorTick.bCanEverTick = true; }
+	ANetImguiDemoActor(){ PrimaryActorTick.bCanEverTick = NETIMGUI_DEMO_ACTOR_ENABLED; }
 
+#if NETIMGUI_DEMO_ACTOR_ENABLED
 	// Makes sure tick is called even outside of PIE
 	virtual bool ShouldTickIfViewportsOnly() const override{ return true; }
 	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
+#endif //NETIMGUI_DEMO_ACTOR_ENABLED
 };

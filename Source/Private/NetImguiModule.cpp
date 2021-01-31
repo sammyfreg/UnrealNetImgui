@@ -79,11 +79,11 @@ void FNetImguiModule::Update()
 	if( NetImgui::IsDrawing() )
 		NetImgui::EndFrame();
 
-#if NETIMGUI_USE_FRAMESKIP //Not interested in drawing menu until connection established
+#if NETIMGUI_FRAMESKIP_ENABLED //Not interested in drawing menu until connection established
 	if( NetImgui::IsConnected() )
 #endif
 	{
-		NetImgui::NewFrame(NETIMGUI_USE_FRAMESKIP);
+		NetImgui::NewFrame(NETIMGUI_FRAMESKIP_ENABLED);
 	}
 #endif
 }

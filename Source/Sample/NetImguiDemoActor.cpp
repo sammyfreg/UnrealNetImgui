@@ -7,10 +7,12 @@
 // The 'Dear ImGui' draws can be done from anywhere in the engine, on the GameThread, 
 // and not limited to 'AActor::Tick()' or an Actor class.
 // 
-// !!! This class is not needed to use Dear ImGui / NetImgui (just an example) !!!
+// !!! This class is not needed to use Dear ImGui / NetImgui, it is here as an example !!!
 //=================================================================================================
 
 #include "NetImguiDemoActor.h"
+
+#if NETIMGUI_DEMO_ACTOR_ENABLED
 #include <NetImguiModule.h>
 
 #if NETIMGUI_ENABLED
@@ -93,3 +95,4 @@ void ANetImguiDemoActor::Tick(float DeltaTime)
     }
 #endif
 }
+#endif //#if NETIMGUI_DEMO_ACTOR_ENABLED
