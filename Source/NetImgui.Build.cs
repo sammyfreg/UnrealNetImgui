@@ -72,8 +72,9 @@ public class NetImgui : ModuleRules
 
 		PublicDependencyModuleNames.AddRange( new string[] { "Core", "Projects"} );
 		PrivateDependencyModuleNames.AddRange( new string[] { "CoreUObject", "Engine", "Sockets" } );
-		PCHUsage = PCHUsageMode.NoPCHs; // Prevents problem with Dear ImGui/NetImgui sources not including the right first header
-		
+		PCHUsage = PCHUsageMode.NoSharedPCHs; // Prevents problem with Dear ImGui/NetImgui sources not including the right first header
+		PrivatePCHHeaderFile = "Public/NetImguiModule.h";
+
 #if UE_4_24_OR_LATER
 		bLegacyPublicIncludePaths = false;
 		ShadowVariableWarningLevel = WarningLevel.Error;
