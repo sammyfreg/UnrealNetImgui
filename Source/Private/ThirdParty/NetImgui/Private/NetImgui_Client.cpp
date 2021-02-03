@@ -255,7 +255,11 @@ void CommunicationsHost(void* pClientVoid)
 				bConnected	= Communications_Outgoing(*pClient) && Communications_Incoming(*pClient);
 			}
 			pClient->KillSocketComs();
-		}			
+		}
+		else
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
 	}
 
 	pClient->KillSocketAll();
