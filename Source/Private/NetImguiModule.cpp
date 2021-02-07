@@ -20,6 +20,24 @@
 #define LOCTEXT_NAMESPACE "FNetImguiModule"
 IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 
+#if NETIMGUI_ENABLED
+uint32_t GetClientPort()
+{
+	if (IsRunningDedicatedServer())
+	{
+		return NETIMGUI_LISTENPORT_DEDICATED_SERVER;
+	}
+	else if (FApp::IsGame())
+	{
+		return NETIMGUI_LISTENPORT_GAME;
+	}
+	else
+	{
+		return NETIMGUI_LISTENPORT_EDITOR;
+	}
+}
+#endif
+
 void FNetImguiModule::StartupModule()
 {
 #if NETIMGUI_ENABLED
@@ -55,7 +73,7 @@ void FNetImguiModule::StartupModule()
 	// Note:	The default behaviour is for the Game Client to wait for connection from the NetImgui Server.
 	//			It is possible to connect directly to the NetImgui Server insted, using 'NetImgui::ConnectToApp'
 	FString sessionName = FString::Format(TEXT("{0}-{1}"), { FApp::GetProjectName(), FPlatformProcess::ComputerName() });
-	NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), FApp::IsGame() ? NETIMGUI_LISTENPORT_GAME : NETIMGUI_LISTENPORT_EDITOR);
+	NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), GetClientPort());
 	//---------------------------------------------------------------------------------------------
 
 	FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
