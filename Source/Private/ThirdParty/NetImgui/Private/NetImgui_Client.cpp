@@ -227,11 +227,11 @@ void CommunicationsClient(void* pClientVoid)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		//std::this_thread::yield();
-		bConnected = Communications_Outgoing(*pClient) && Communications_Incoming(*pClient);		
+		bConnected = !pClient->mbDisconnectRequest && Communications_Outgoing(*pClient) && Communications_Incoming(*pClient);		
 	}
 
 	pClient->KillSocketComs();
-	pClient->mbDisconnectRequest = false;
+	pClient->mbDisconnectRequest = false; // Signal the main thread that it can continue
 }
 
 //=================================================================================================
@@ -242,24 +242,23 @@ void CommunicationsHost(void* pClientVoid)
 	ClientInfo* pClient		= reinterpret_cast<ClientInfo*>(pClientVoid);
 	pClient->mpSocketListen	= pClient->mpSocketPending.exchange(nullptr);
 	while( !pClient->mbDisconnectRequest && pClient->mpSocketListen )
-	{		
-		pClient->mpSocketPending	= Network::ListenConnect(pClient->mpSocketListen);
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));	// Prevents this thread from taking entire core, waiting on server connection
+		pClient->mpSocketPending = Network::ListenConnect(pClient->mpSocketListen);
 		if( pClient->mpSocketPending )
 		{
-			Communications_Initialize(*pClient);
-			bool bConnected(pClient->IsConnected());
+			bool bConnected = Communications_Initialize(*pClient);
 			while (bConnected)
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				//std::this_thread::yield();
-				bConnected	= Communications_Outgoing(*pClient) && Communications_Incoming(*pClient);
+				bConnected	= !pClient->mbDisconnectRequest && Communications_Outgoing(*pClient) && Communications_Incoming(*pClient);
 			}
 			pClient->KillSocketComs();
-		}			
+		}
 	}
-
-	pClient->KillSocketAll();
-	pClient->mbDisconnectRequest = false;
+	pClient->KillSocketListen();
+	pClient->mbDisconnectRequest = false; // Signal the main thread that it can continue
 }
 
 //=================================================================================================

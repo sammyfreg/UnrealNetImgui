@@ -48,7 +48,6 @@ SocketInfo* Connect(const char* ServerHost, uint32_t ServerPort)
 		IpAddress->SetPort(ServerPort);		
 		if (IpAddress->IsValid())
 		{
-			//FString a						= IpAddress->ToString(true);
 			FSocket* pNewSocket				= SocketSubSystem->CreateSocket(NAME_Stream, "netImgui", IpAddress->GetProtocolType());
 			if (pNewSocket)
 			{
@@ -71,13 +70,15 @@ SocketInfo* ListenStart(uint32_t ListenPort)
 	TSharedRef<FInternetAddr> IpAddress = PlatformSocketSub->CreateInternetAddr();
 	IpAddress->SetLoopbackAddress();
 	IpAddress->SetPort(ListenPort);
-	FSocket* pNewListenSocket = PlatformSocketSub->CreateSocket(NAME_Stream, "netImguiListen", IpAddress->GetProtocolType());
-	SocketInfo* pListenSocketInfo = netImguiNew<SocketInfo>(pNewListenSocket);
+	FSocket* pNewListenSocket			= PlatformSocketSub->CreateSocket(NAME_Stream, "netImguiListen", IpAddress->GetProtocolType());
+	SocketInfo* pListenSocketInfo		= netImguiNew<SocketInfo>(pNewListenSocket);
 	if (pNewListenSocket->Bind(*IpAddress))
 	{
 		pNewListenSocket->SetNonBlocking(true);
 		if (pNewListenSocket->Listen(1))
+		{
 			return pListenSocketInfo;
+		}
 	}
 
 	netImguiDelete(pListenSocketInfo);

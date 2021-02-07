@@ -54,12 +54,6 @@ void ClientInfo::KillSocketListen()
 	}
 }
 
-void ClientInfo::KillSocketAll()
-{	
-	KillSocketComs();
-	KillSocketListen();	
-}
-
 bool ClientInfo::IsContextOverriden()const
 {
 	return mSavedContextValues.mSavedContext;

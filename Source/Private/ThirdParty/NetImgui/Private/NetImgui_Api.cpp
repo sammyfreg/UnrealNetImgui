@@ -91,7 +91,6 @@ void Disconnect(void)
 	
 	Client::ClientInfo& client	= *gpClientInfo;
 	client.mbDisconnectRequest	= client.IsActive();
-	client.KillSocketListen(); // Forcefully disconnect Listening socket, since it is blocking
 }
 
 //=================================================================================================

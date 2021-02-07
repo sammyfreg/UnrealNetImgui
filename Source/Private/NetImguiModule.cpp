@@ -21,7 +21,7 @@
 IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 
 #if NETIMGUI_ENABLED
-uint32_t GetClientPort()
+uint32_t GetListeningPort()
 {
 	if (IsRunningDedicatedServer())
 	{
@@ -73,7 +73,7 @@ void FNetImguiModule::StartupModule()
 	// Note:	The default behaviour is for the Game Client to wait for connection from the NetImgui Server.
 	//			It is possible to connect directly to the NetImgui Server insted, using 'NetImgui::ConnectToApp'
 	FString sessionName = FString::Format(TEXT("{0}-{1}"), { FApp::GetProjectName(), FPlatformProcess::ComputerName() });
-	NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), GetClientPort());
+	NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), GetListeningPort());
 	//---------------------------------------------------------------------------------------------
 
 	FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
