@@ -42,8 +42,9 @@ void FNetImguiModule::StartupModule()
 {
 #if NETIMGUI_ENABLED
 	NetImgui::Startup();
-		
-	ImGui::SetCurrentContext(ImGui::CreateContext());
+	
+	CreatedContext = ImGui::CreateContext();
+	ImGui::SetCurrentContext(CreatedContext);
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
@@ -87,7 +88,7 @@ void FNetImguiModule::ShutdownModule()
 		NetImgui::EndFrame();
 	NetImgui::Shutdown(true);
 
-	ImGui::DestroyContext(ImGui::GetCurrentContext());
+	ImGui::DestroyContext(CreatedContext);
 #endif
 }
 
