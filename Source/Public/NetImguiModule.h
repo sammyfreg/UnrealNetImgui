@@ -15,6 +15,7 @@
 class FNetImguiModule : public IModuleInterface
 {
 public:
+	static constexpr char kModuleName[] = "NetImgui";
 	enum class eFont
 	{
 		kProggyClean,
@@ -35,14 +36,14 @@ public:
 	 *
 	 * @return Returns singleton instance, loading the module on demand if needed
 	 */
-	static inline FNetImguiModule& Get() { return FModuleManager::LoadModuleChecked<FNetImguiModule>("NetImgui"); }
+	static inline FNetImguiModule& Get() { return FModuleManager::LoadModuleChecked<FNetImguiModule>(kModuleName); }
 
 	/**
 	 * Checks to see if this module is loaded and ready. It is only valid to call Get() if IsAvailable() returns true.
 	 *
 	 * @return True if the module is loaded and ready to use
 	 */
-	static inline bool IsAvailable() { return FModuleManager::Get().IsModuleLoaded("NetImgui"); }
+	static inline bool IsAvailable() { return FModuleManager::Get().IsModuleLoaded(kModuleName); }
 
 	/**
 	 * Let us know if this module is currently ready to receives 'Dear ImGui' draw commands
@@ -52,10 +53,20 @@ public:
 	static inline bool IsDrawing()
 	{
 	#if NETIMGUI_ENABLED
-		return IsAvailable() && Get().isDrawing(); 
-	#else
-		return false;
+		FNetImguiModule* pNetImguiModule = FModuleManager::LoadModulePtr<FNetImguiModule>(kModuleName);
+		if (pNetImguiModule != nullptr && pNetImguiModule->isDrawing()) 
+		{
+			// HotReload note: When a dll is reloaded, original dll is still loaded and all 'Dear ImGui' 
+			// functions are still pointing to it when called from outside this dll. Only this module object
+			// is recreated. This means that the game code will call original dll but this module object 
+			// will use reloaded dll ImGui functions. To prevent issue with destroyed context, we are 
+			// making sure that the original dll knows about this module's newly created context.
+			ImGui::SetCurrentContext(pNetImguiModule->mpContext);
+			return true;
+		}
 	#endif
+		return false;
+	
 	}
 	
 	/**
@@ -64,8 +75,9 @@ public:
 	static inline void SetDefaultFont(eFont font)
 	{
 	#if NETIMGUI_ENABLED
-		if( IsAvailable() ){
-			Get().setDefaultFont(font); 
+		FNetImguiModule* pNetImguiModule = FModuleManager::LoadModulePtr<FNetImguiModule>(kModuleName);
+		if( pNetImguiModule != nullptr ){
+			pNetImguiModule->setDefaultFont(font); 
 		}
 	#endif
 	}
@@ -77,8 +89,9 @@ public:
 	static inline void PushFont(eFont font)
 	{
 	#if NETIMGUI_ENABLED
-		if( IsAvailable() ){
-			Get().pushFont(font); 
+		FNetImguiModule* pNetImguiModule = FModuleManager::LoadModulePtr<FNetImguiModule>(kModuleName);
+		if( pNetImguiModule != nullptr ){
+			pNetImguiModule->pushFont(font);
 		}
 	#endif
 	}
@@ -89,7 +102,10 @@ public:
 	static inline void PopFont()
 	{
 	#if NETIMGUI_ENABLED
-		ImGui::PopFont();
+		FNetImguiModule* pNetImguiModule = FModuleManager::LoadModulePtr<FNetImguiModule>(kModuleName);
+		if( pNetImguiModule != nullptr ){
+			pNetImguiModule->popFont(); 
+		}
 	#endif
 	}
 
@@ -101,7 +117,11 @@ public:
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
+
+protected:
 	void Update();
+	FDelegateHandle mUpdateCallback;
+	ImGuiContext* mpContext = nullptr;
 };
 
 #if NETIMGUI_ENABLED
@@ -112,7 +132,7 @@ public:
 struct NetImguiScopedFont
 {
 	inline NetImguiScopedFont(FNetImguiModule::eFont font){ FNetImguiModule::PushFont(font); }
-	inline ~NetImguiScopedFont(){ ImGui::PopFont(); }
+	inline ~NetImguiScopedFont(){ FNetImguiModule::PopFont(); }
 };
 
 #endif

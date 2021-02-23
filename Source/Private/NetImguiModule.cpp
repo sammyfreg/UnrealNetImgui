@@ -42,8 +42,8 @@ void FNetImguiModule::StartupModule()
 {
 #if NETIMGUI_ENABLED
 	NetImgui::Startup();
-		
-	ImGui::SetCurrentContext(ImGui::CreateContext());
+	mpContext = ImGui::CreateContext();
+	ImGui::SetCurrentContext(mpContext);
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
@@ -76,18 +76,21 @@ void FNetImguiModule::StartupModule()
 	NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), GetListeningPort());
 	//---------------------------------------------------------------------------------------------
 
-	FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
+	mUpdateCallback = FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
 #endif
 }
 
 void FNetImguiModule::ShutdownModule()
 {
 #if NETIMGUI_ENABLED
+	FCoreDelegates::OnEndFrame.Remove(mUpdateCallback);
+	mUpdateCallback.Reset();
 	if (NetImgui::IsDrawing())
 		NetImgui::EndFrame();
 	NetImgui::Shutdown(true);
 
-	ImGui::DestroyContext(ImGui::GetCurrentContext());
+	ImGui::DestroyContext(mpContext);
+	mpContext = nullptr;
 #endif
 }
 
