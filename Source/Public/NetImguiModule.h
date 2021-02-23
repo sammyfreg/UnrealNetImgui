@@ -57,23 +57,7 @@ public:
 		return false;
 	#endif
 	}
-
-	// This is required for hot-reload support
-	static inline void EnsureImGuiContext()
-	{
-#if NETIMGUI_ENABLED
-		// Is the ImGui context set (it will not be for freshly reloaded DLLs)?
-		if (IsAvailable() && ImGui::GetCurrentContext() == nullptr)
-		{
-			// Get the context from the original DLL
-			ImGuiContext* ModuleContext = FNetImguiModule::Get().CreatedContext;
-
-			// Set it in this hot-reloaded DLL
-			ImGui::SetCurrentContext(ModuleContext);
-		}
-#endif
-	}
-
+	
 	/**
 	 * Replace the default Font
 	 */
@@ -118,11 +102,6 @@ public:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 	void Update();
-
-private:
-#if NETIMGUI_ENABLED
-	ImGuiContext* CreatedContext = nullptr;
-#endif
 };
 
 #if NETIMGUI_ENABLED
