@@ -7,7 +7,7 @@
 </p>
 
 # Summary
-### [Unreal Engine 4's](https://github.com/EpicGames) support of [NetImgui 1.3](https://github.com/sammyfreg/netImgui "NetImgui").
+### [Unreal Engine 4's](https://github.com/EpicGames) support of [NetImgui 1.5](https://github.com/sammyfreg/netImgui "NetImgui").
 
 **NetImgui** is a library to remotely display and control **Dear ImGui** menus with a connected NetImgui server application. 
 
@@ -74,11 +74,10 @@ void AMyImGuiActor::Tick(float DeltaTime)
 ```
 
 # Release notes
- - Upgraded to **Dear Imgui 1.80** *(docking branch and table support)*
- - Upgraded to [**NetImgui 1.3**](https://github.com/sammyfreg/netImgui "NetImgui") *(more details in link)*
+ - Upgraded to **Dear Imgui 1.83** *(docking branch)*
+ - Upgraded to [**NetImgui 1.5**](https://github.com/sammyfreg/netImgui "NetImgui") *(more details in link)*
  - Tested on **Unreal 4.26** *(other versions should be supported without issues)*
- - Added various font support
- - Improved Server UI for better handling of multiple clients
+ - **NetImgui Server** now requires less CPU/GPU
  
 # Credits
 Sincere thanks to [Omar Cornut](https://github.com/ocornut/imgui/commits?author=ocornut) for the incredible work on [**Dear ImGui**](https://github.com/ocornut/imgui).
