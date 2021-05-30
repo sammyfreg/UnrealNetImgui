@@ -27,9 +27,6 @@ void SavedImguiContext::Save(ImGuiContext* copyFrom)
 	mBackendRendererName	= sourceIO.BackendRendererName;
 	mDrawMouse				= sourceIO.MouseDrawCursor;	
 	mClipboardUserData		= sourceIO.ClipboardUserData;	
-#if IMGUI_VERSION_NUM >= 17700 && IMGUI_VERSION_NUM < 17900
-    mImeWindowHandle		= sourceIO.ImeWindowHandle;
-#endif
 }
 
 void SavedImguiContext::Restore(ImGuiContext* copyTo)
@@ -45,9 +42,6 @@ void SavedImguiContext::Restore(ImGuiContext* copyTo)
 	destIO.BackendRendererName	= mBackendRendererName;
 	destIO.MouseDrawCursor		= mDrawMouse;
 	destIO.ClipboardUserData	= mClipboardUserData;
-#if IMGUI_VERSION_NUM >= 17700 && IMGUI_VERSION_NUM < 17900
-	destIO.ImeWindowHandle		= mImeWindowHandle;
-#endif
 }
 
 //=================================================================================================
@@ -71,10 +65,11 @@ bool Communications_Initialize(ClientInfo& client)
 			texture.mbSent = false;
 		}
 
-		client.mbHasTextureUpdate	= true;
-		client.mpSocketComs			= client.mpSocketPending.exchange(nullptr);
+		client.mbHasTextureUpdate			= true;								// Force sending the client textures
+		client.mBGSettingSent.mTextureId	= client.mBGSetting.mTextureId-1u;	// Force sending the Background settings (by making different than current settings)
+		client.mpSocketComs					= client.mpSocketPending.exchange(nullptr);
 	}
-	return client.mpSocketComs != nullptr;
+	return client.mpSocketComs.load() != nullptr;
 }
 
 //=================================================================================================
@@ -114,6 +109,22 @@ bool Communications_Outgoing_Textures(ClientInfo& client)
 			}
 		}
 		client.mbHasTextureUpdate = !bSuccess;
+	}
+	return bSuccess;
+}
+
+//=================================================================================================
+// OUTCOM: BACKGROUND
+// Transmit the current client background settings
+//=================================================================================================
+bool Communications_Outgoing_Background(ClientInfo& client)
+{	
+	bool bSuccess(true);
+	CmdBackground* pPendingBackground = client.mPendingBackgroundOut.Release();
+	if( pPendingBackground )
+	{
+		bSuccess = Network::DataSend(client.mpSocketComs, pPendingBackground, pPendingBackground->mHeader.mSize);
+		netImguiDeleteSafe(pPendingBackground);
 	}
 	return bSuccess;
 }
@@ -189,7 +200,8 @@ bool Communications_Incoming(ClientInfo& client)
 			case CmdHeader::eCommands::Invalid:
 			case CmdHeader::eCommands::Version:
 			case CmdHeader::eCommands::Texture:
-			case CmdHeader::eCommands::DrawFrame:	break;
+			case CmdHeader::eCommands::DrawFrame:	
+			case CmdHeader::eCommands::Background:	break;
 			}
 		}		
 		netImguiDeleteSafe(pCmdData);
@@ -205,6 +217,8 @@ bool Communications_Outgoing(ClientInfo& client)
 	bool bSuccess(true);
 	if( bSuccess )
 		bSuccess = Communications_Outgoing_Textures(client);
+	if( bSuccess )
+		bSuccess = Communications_Outgoing_Background(client);
 	if( bSuccess )
 		bSuccess = Communications_Outgoing_Frame(client);	
 	if( bSuccess )
@@ -241,11 +255,11 @@ void CommunicationsHost(void* pClientVoid)
 {
 	ClientInfo* pClient		= reinterpret_cast<ClientInfo*>(pClientVoid);
 	pClient->mpSocketListen	= pClient->mpSocketPending.exchange(nullptr);
-	while( !pClient->mbDisconnectRequest && pClient->mpSocketListen )
+	while( !pClient->mbDisconnectRequest && pClient->mpSocketListen.load() != nullptr )
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));	// Prevents this thread from taking entire core, waiting on server connection
 		pClient->mpSocketPending = Network::ListenConnect(pClient->mpSocketListen);
-		if( pClient->mpSocketPending )
+		if( pClient->mpSocketPending.load() != nullptr )
 		{
 			bool bConnected = Communications_Initialize(*pClient);
 			while (bConnected)
@@ -352,7 +366,7 @@ void ClientInfo::TextureProcessPending()
 }
 
 //=================================================================================================
-// Initialize the 
+// Initialize the associated ImguiContext
 //=================================================================================================
 void ClientInfo::ContextInitialize()
 {
@@ -416,9 +430,7 @@ void ClientInfo::ContextOverride()
 		newIO.ClipboardUserData				= nullptr;
 		newIO.BackendPlatformName			= "NetImgui";
 		newIO.BackendRendererName			= "DirectX11";
-#if IMGUI_VERSION_NUM >= 17700 && IMGUI_VERSION_NUM < 17900
-		newIO.ImeWindowHandle				= nullptr;
-#endif
+
 #if defined(IMGUI_HAS_VIEWPORT)
 		newIO.ConfigFlags					&= ~(ImGuiConfigFlags_ViewportsEnable); // Viewport unsupported at the moment
 #endif
