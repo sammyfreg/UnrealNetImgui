@@ -20,6 +20,9 @@
 #define LOCTEXT_NAMESPACE "FNetImguiModule"
 IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 
+// define the symbol for Clang compiler
+constexpr char FNetImguiModule::kModuleName[];
+
 #if NETIMGUI_ENABLED
 uint32_t GetListeningPort()
 {
