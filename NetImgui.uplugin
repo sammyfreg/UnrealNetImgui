@@ -1,7 +1,7 @@
 {
 	"FileVersion": 1,
-	"Version": 1,
-	"VersionName": "1.0",
+	"Version": 3,
+	"VersionName": "1.3",
 	"FriendlyName": "NetImgui",
 	"Description": "Plugin exposing Dear ImGui library for drawing 2D menus. These menus are displayed and controlled from an external application but processed from this engine code.",
 	"Category": "2D",
