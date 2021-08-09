@@ -15,6 +15,12 @@
 
 #if NETIMGUI_ENABLED
 #include "ThirdParty/NetImgui/NetImgui_Api.h"
+//----------------------------------------------------------------------------
+#include "ImguiUnrealCommand.h"
+#if IMGUI_UNREAL_COMMAND_ENABLED
+static UECommandImgui::CommandContext* spUECommandContext = nullptr;
+#endif
+//----------------------------------------------------------------------------
 #endif
 
 #define LOCTEXT_NAMESPACE "FNetImguiModule"
@@ -79,7 +85,18 @@ void FNetImguiModule::StartupModule()
 	NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), GetListeningPort());
 	//---------------------------------------------------------------------------------------------
 
-	mUpdateCallback = FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
+	mUpdateCallback		= FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
+
+//----------------------------------------------------------------------------
+#if IMGUI_UNREAL_COMMAND_ENABLED
+	
+	spUECommandContext	= UECommandImgui::Create(); // Create a new Imgui Command Window
+	// Commented code demonstrating how to add/modify Presets
+	// Could also modify the list of 'Default Presets' directly (UECommandImgui::sDefaultPresets)
+	//UECommandImgui::AddPresetFilters(spUECommandContext, TEXT("ExamplePreset"), {"ai.Debug", "fx.Dump"});
+	//UECommandImgui::AddPresetCommands(spUECommandContext, TEXT("ExamplePreset"), {"Stat Unit", "Stat Fps"});
+#endif
+//----------------------------------------------------------------------------
 #endif
 }
 
@@ -94,6 +111,11 @@ void FNetImguiModule::ShutdownModule()
 
 	ImGui::DestroyContext(mpContext);
 	mpContext = nullptr;
+//----------------------------------------------------------------------------
+#if IMGUI_UNREAL_COMMAND_ENABLED
+	UECommandImgui::Destroy(spUECommandContext);
+#endif
+//----------------------------------------------------------------------------
 #endif
 }
 
@@ -103,11 +125,26 @@ void FNetImguiModule::Update()
 	if( NetImgui::IsDrawing() )
 		NetImgui::EndFrame();
 
-#if NETIMGUI_FRAMESKIP_ENABLED //Not interested in drawing menu until connection established
+#if NETIMGUI_FRAMESKIP_ENABLED //Not interested in drawing Dear ImGui Content, until connection established
 	if( NetImgui::IsConnected() )
 #endif
 	{
 		NetImgui::NewFrame(NETIMGUI_FRAMESKIP_ENABLED);
+		if (NetImgui::IsDrawingRemote()) {
+	//----------------------------------------------------------------------------
+	#if IMGUI_UNREAL_COMMAND_ENABLED
+			// Add Main Menu entry to toggle Unreal Command Window visibility
+			if (ImGui::BeginMainMenuBar()) {
+				ImGui::MenuItem("Unreal-Commands", nullptr, &UECommandImgui::IsVisible(spUECommandContext) );
+				ImGui::EndMainMenuBar();
+			}
+
+			// Always try displaying the 'Unreal Command Imgui' Window (handle Window visibily internally)
+			UECommandImgui::Show(spUECommandContext);
+	#endif
+	//----------------------------------------------------------------------------
+		}
+	
 	}
 #endif
 }
