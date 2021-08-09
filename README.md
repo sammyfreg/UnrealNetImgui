@@ -24,8 +24,9 @@ Integrated in the plugin, is the ***Imgui Unreal Commands*** functionalities. Al
 
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealCommandsFull.gif)
 **[[Demonstration Video]](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealCommands.mp4 "[Demonstration Video]")**
-
  - **Note :**
+  - The *Imgui Unreal Commands* support is early release.
+  - **I am interested in hearing back from people, to know what 'Preset' should comes by default**
   - The *Imgui Unreal Commands* functionality can easily be added in other projects (without  **UnrealNetImgui** dependency).
   -Copy `Source\Private\ImguiUnrealCommand.cpp + .h` to your own project
   -Follow usage found in `Source\Private\NetImguiModule.cpp` (inside IMGUI_UNREAL_COMMAND_ENABLED defines)
