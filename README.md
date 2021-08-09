@@ -23,9 +23,10 @@ This plugin allows **UE4** users to remotely connect to their game and display [
 Integrated in the plugin, is the ***Imgui Unreal Commands*** functionalities. Allows user to quickly browse and execute the various Unreal Commands that are already available in the Console, but with a nicer interface. 
 
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealCommandsFull.gif)
-**[[Demonstration Video]](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealCommands.mp4f "[Demonstration Video]")**
-
+**[[Demonstration Video]](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealCommands.mp4 "[Demonstration Video]")**
  - **Note :**
+  - The *Imgui Unreal Commands* support is early release.
+  - **I am interested in hearing back from people, to know what 'Preset' should comes by default**
   - The *Imgui Unreal Commands* functionality can easily be added in other projects (without  **UnrealNetImgui** dependency).
   -Copy `Source\Private\ImguiUnrealCommand.cpp + .h` to your own project
   -Follow usage found in `Source\Private\NetImguiModule.cpp` (inside IMGUI_UNREAL_COMMAND_ENABLED defines)
