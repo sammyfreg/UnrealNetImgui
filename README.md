@@ -7,17 +7,27 @@
 </p>
 
 # Summary
-### [Unreal Engine 4's](https://github.com/EpicGames) support of [NetImgui 1.5](https://github.com/sammyfreg/netImgui "NetImgui").
+### [Unreal Engine 4's](https://github.com/EpicGames) support of [NetImgui 1.6](https://github.com/sammyfreg/netImgui "NetImgui")
 
 **NetImgui** is a library to remotely display and control **Dear ImGui** menus with a connected NetImgui server application. 
 
 This plugin allows **UE4** users to remotely connect to their game and display [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui")'s generated menus in a separate window. The game can be running on a different computer or even a different platform such as console, cellpone, etc...
 
-![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/netImgui.png)
+![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealCommands.gif)
 
 > **Note 1:** Allows a very simple use of **NetImgui** in **Unreal Engine 4**. To support more complex usage, with **Dear ImGui** content displayed locally on the game screen, please take a look at the excellent [**UnrealImGui**](https://github.com/segross/UnrealImGui/tree/net_imgui) plugin. It also has NetImgui support integrated.
 
 > **Note 2:** This is a useful plugin when **Dear ImGui** is not already supported in your UE4 engine codebase. Otherwise, it is possible to ignore this plugin and directly add [**NetImgui's**](https://github.com/sammyfreg/netImgui "NetImgui") client code alongside your **Dear ImGui's** code. 
+
+# Unreal Commands
+Integrated in the plugin, is the ***Imgui Unreal Commands*** functionalities. Allows user to quickly browse and execute the various Unreal Commands that are already available in the Console, but with a nicer interface.
+
+![UnrealCommands](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealCommands.mp4)
+
+ - **Note :**
+  - The *Imgui Unreal Commands* functionality can easily be added in other projects (without  **UnrealNetImgui** dependency).
+  -Copy `Source\Private\ImguiUnrealCommand.cpp + .h` to your own project
+  -Follow usage found in `Source\Private\NetImguiModule.cpp` (inside IMGUI_UNREAL_COMMAND_ENABLED defines)
 
 # Integration
  1. Download and copy the **UnrealNetImgui** folder to **Unreal Engine**'s Plugin directory (`.\Engine\Plugins`)
@@ -73,12 +83,17 @@ void AMyImGuiActor::Tick(float DeltaTime)
 }
 ```
 
-# Release notes
+# Release notes 1.4
+ - Upgraded to [**NetImgui 1.6**](https://github.com/sammyfreg/netImgui "NetImgui") *(more details in link)*
+ - NetImgui Server keyboard Input fixes
+ - Added ***Imgui Unreal Commands*** support (browse and execute Unreal Commands)
+ 
+# Release notes (older)
  - Upgraded to **Dear Imgui 1.83** *(docking branch)*
  - Upgraded to [**NetImgui 1.5**](https://github.com/sammyfreg/netImgui "NetImgui") *(more details in link)*
  - Tested on **Unreal 4.26** *(other versions should be supported without issues)*
  - **NetImgui Server** now requires less CPU/GPU
- 
+
 # Credits
 Sincere thanks to [Omar Cornut](https://github.com/ocornut/imgui/commits?author=ocornut) for the incredible work on [**Dear ImGui**](https://github.com/ocornut/imgui).
 
