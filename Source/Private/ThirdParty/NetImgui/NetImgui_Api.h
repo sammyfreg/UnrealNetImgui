@@ -4,12 +4,12 @@
 //! @Name		: NetImgui
 //=================================================================================================
 //! @author		: Sammy Fatnassi
-//! @date		: 2021/08/08
-//!	@version	: v1.6.0
+//! @date		: 2022/01/16
+//!	@version	: v1.7.2
 //! @Details	: For integration info : https://github.com/sammyfreg/netImgui/wiki
 //=================================================================================================
-#define NETIMGUI_VERSION		"1.6"
-#define NETIMGUI_VERSION_NUM	10600
+#define NETIMGUI_VERSION		"1.7.2"
+#define NETIMGUI_VERSION_NUM	10702
 
 #include <stdint.h>
 #include "Private/NetImgui_WarningDisable.h"
@@ -46,7 +46,17 @@ enum class eTexFormat : uint8_t {
 	kTexFmtA8, 
 	kTexFmtRGBA8, 
 	kTexFmt_Count,
-	kTexFmt_Invalid=kTexFmt_Count };
+	kTexFmt_Invalid=kTexFmt_Count 
+};
+
+//=================================================================================================
+// Data Compression wanted status
+//=================================================================================================
+enum class eCompressionMode : uint8_t {
+	kForceDisable,			// Disable data compression for communications
+	kForceEnable,			// Enable data compression for communications
+	kUseServerSetting		// Use Server setting for compression (default)
+};
 
 typedef void		ThreadFunctPtr(void threadedFunction(void* pClientInfo), void* pClientInfo) ;
 
@@ -57,10 +67,9 @@ bool				Startup(void);
 
 //=================================================================================================
 // Free Resources
-//-------------------------------------------------------------------------------------------------
-// bWait			: Wait until all communication threads have terminated before returning
+// Wait until all communication threads have terminated before returning
 //=================================================================================================
-void				Shutdown(bool bWait);
+void				Shutdown();
 
 //=================================================================================================
 // Try to establish a connection to NetImgui server application. 
@@ -119,16 +128,17 @@ void				SendDataTexture(ImTextureID textureId, void* pData, uint16_t width, uint
 // Start a new Imgui Frame and wait for Draws commands, using a ImGui created internally
 // for remote drawing. Returns true if we are awaiting a new ImGui frame. 
 //
-// All ImGui drawing can be skip when false.
+// All ImGui drawing should be skipped when return is false.
 //
 // Note: This code can be used instead, to know if you should be drawing or not :
 //			'if( !NetImgui::IsDrawing() )'
 //
-// Note: If your code cannot handle skipping a ImGui frame, leave 'bSupportFrameSkip==false',
-//		 and an empty ImGui context will be assigned to receive discarded drawing commands
+// Note: If your code cannot handle skipping a ImGui frame, leave 'bSupportFrameSkip=false',
+//		 and this function will always call 'ImGui::NewFrame()' internally and return true
 //
 // Note: With Dear ImGui 1.81+, you can keep using the ImGui::BeginFrame()/Imgui::Render()
-//		 without having to use these 2 functions.
+//		 without having to use NetImgui::NewFrame()/NetImgui::EndFrame() 
+//		 (unless wanting to support frame skip)
 //=================================================================================================
 bool				NewFrame(bool bSupportFrameSkip=false);
 
@@ -143,12 +153,18 @@ void				EndFrame(void);
 ImGuiContext*		GetContext();
 
 //=================================================================================================
-// Set the remote client backoground color and texture
+// Set the remote client background color and texture
 // Note: If no TextureID is specified, will use the default server texture
 //=================================================================================================
 void				SetBackground(const ImVec4& bgColor);
 void				SetBackground(const ImVec4& bgColor, const ImVec4& textureTint );
 void				SetBackground(const ImVec4& bgColor, const ImVec4& textureTint, ImTextureID bgTextureID);
+
+//=================================================================================================
+// Control the data compression for communications between Client/Server
+//=================================================================================================
+void				SetCompressionMode(eCompressionMode eMode);
+eCompressionMode	GetCompressionMode();
 
 //=================================================================================================
 // Helper function to quickly create a context duplicate (sames settings/font/styles)

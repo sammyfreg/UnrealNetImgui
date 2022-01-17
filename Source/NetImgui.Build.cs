@@ -16,8 +16,8 @@ using UnrealBuildTool;
 //			local display of Imgui content but also support netImgui for remote display.
 //-------------------------------------------------------------------------------------------------
 //
-// Dear ImGui Library	: v1.80.0	(https://github.com/ocornut/imgui)
-// NetImGui Library		: v1.3.1	(https://github.com/sammyfreg/netImgui)
+// Dear ImGui Library	: v1.86.5	(https://github.com/ocornut/imgui)
+// NetImGui Library		: v1.7.2	(https://github.com/sammyfreg/netImgui)
 //=================================================================================================
 
 public class NetImgui : ModuleRules

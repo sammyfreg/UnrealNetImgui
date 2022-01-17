@@ -96,6 +96,12 @@ void OffsetPointer<TType>::SetPtr(TType* pPointer)
 }
 
 template <typename TType>
+void OffsetPointer<TType>::SetComDataPtr(ComDataType* pPointer)
+{
+	SetPtr(reinterpret_cast<TType*>(pPointer));
+}
+
+template <typename TType>
 void OffsetPointer<TType>::SetOff(uint64_t offset)
 {
 	mOffset = offset | 0x8000000000000000;
@@ -164,6 +170,12 @@ const TType* OffsetPointer<TType>::Get()const
 }
 
 template <typename TType>
+const ComDataType* OffsetPointer<TType>::GetComData()const
+{
+	return reinterpret_cast<const ComDataType*>(Get());
+}
+
+template <typename TType>
 TType& OffsetPointer<TType>::operator[](size_t index)
 {
 	assert(IsPointer());
@@ -215,17 +227,18 @@ void Ringbuffer<TType,TCount>::ReadData(TType* pData, size_t& count)
 // and many other discussions online on the topic.
 //=============================================================================
 template <size_t charCount>
-void StringCopy(char (&output)[charCount], const char* pSrc)
+void StringCopy(char (&output)[charCount], const char* pSrc, size_t srcCharCount)
 {
-#if defined(_MSC_VER) && defined(__clang__)
+#if defined(__clang__)
 	#pragma clang diagnostic push
 	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #elif defined(_MSC_VER)
 	#pragma warning (push)
-	#pragma warning (disable: 4996)
+	#pragma warning (disable: 4996)	// warning C4996: 'strncpy': This function or variable may be unsafe.
 #endif
 
-	strncpy(output, pSrc, charCount - 1);
+	size_t charToCopyCount = charCount < srcCharCount + 1 ? charCount : srcCharCount + 1;
+	strncpy(output, pSrc, charToCopyCount - 1);
 	output[charCount - 1] = 0;
 
 #if defined(_MSC_VER) && defined(__clang__)
@@ -233,6 +246,60 @@ void StringCopy(char (&output)[charCount], const char* pSrc)
 #elif defined(_MSC_VER)
 	#pragma warning (pop)
 #endif
+}
+
+template <size_t charCount>
+int StringFormat(char(&output)[charCount], char const* const format, ...)
+{
+#if defined(__clang__)
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wformat-nonliteral"	
+#endif
+
+	va_list args;
+    va_start(args, format);
+	int w = vsnprintf(output, charCount, format, args);
+	va_end(args);
+	output[charCount - 1] = 0;
+	return w;
+
+#if defined(__clang__)
+	#pragma clang diagnostic pop
+#endif
+}
+
+//=============================================================================
+//=============================================================================
+template <typename IntType>
+IntType DivUp(IntType Value, IntType Denominator)
+{
+	return (Value + Denominator - 1) / Denominator;
+}
+
+template <typename IntType>
+IntType RoundUp(IntType Value, IntType Round)
+{
+	return DivUp(Value, Round) * Round;
+}
+
+union TextureCastHelperUnion
+{
+	ImTextureID TextureID;
+	uint64_t	TextureUint;
+};
+
+uint64_t TextureCastHelper(ImTextureID textureID)
+{
+	TextureCastHelperUnion textureUnion;
+	textureUnion.TextureID = textureID;
+	return textureUnion.TextureUint;
+}
+
+ImTextureID TextureCastHelper(uint64_t textureID)
+{
+	TextureCastHelperUnion textureUnion;
+	textureUnion.TextureUint = textureID;
+	return textureUnion.TextureID;
 }
 
 }} //namespace NetImgui::Internal

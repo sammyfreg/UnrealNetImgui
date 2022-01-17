@@ -418,7 +418,7 @@ void DrawWindowUI(CommandContext& cmdContext)
 		ImGui::SetKeyboardFocusHere();
 	}
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.f, 0.4f, 0.2f, 0.5f));
-	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
+	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 	unsigned int textInputFlag	= cmdContext.mPendingSelectCopy ? ImGuiInputTextFlags_CallbackAlways : 0;
 	bool bChanged				= ImGui::InputTextWithHint("##Command", "Unreal Command", cmdContext.mFilterConfig.mInput, sizeof(cmdContext.mFilterConfig.mInput), textInputFlag, TextCallback::CopySelection, &cmdContext);
 	bNeedUpdate					|= textInputFlag == 0 && bChanged;
