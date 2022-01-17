@@ -107,7 +107,7 @@ void FNetImguiModule::ShutdownModule()
 	mUpdateCallback.Reset();
 	if (NetImgui::IsDrawing())
 		NetImgui::EndFrame();
-	NetImgui::Shutdown(true);
+	NetImgui::Shutdown();
 
 	ImGui::DestroyContext(mpContext);
 	mpContext = nullptr;

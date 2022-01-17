@@ -63,7 +63,8 @@ struct ClientInfo
 	std::atomic<Network::SocketInfo*>	mpSocketPending;						// Hold socket info until communication is established
 	std::atomic<Network::SocketInfo*>	mpSocketComs;							// Socket used for communications with server
 	std::atomic<Network::SocketInfo*>	mpSocketListen;							// Socket used to wait for communication request from server
-	char								mName[64]					={};
+	char								mName[64]					= {};
+	uint64_t							mFrameIndex					= 0;		// Incremented everytime we send a DrawFrame Command
 	VecTexture							mTextures;
 	CmdTexture*							mTexturesPending[16];
 	ExchangePtr<CmdDrawFrame>			mPendingFrameOut;
@@ -71,19 +72,22 @@ struct ClientInfo
 	ExchangePtr<CmdInput>				mPendingInputIn;	
 	CmdBackground						mBGSetting;								// Current value assigned to background appearance by user
 	CmdBackground						mBGSettingSent;							// Last sent value to remote server
-	CmdInput*							mpLastInput					= nullptr;
-	BufferKeys							mPendingKeyIn;	
+	CmdInput*							mpInputPending				= nullptr;	// Last Input Command from server, waiting to be processed by client
+	CmdDrawFrame*						mpDrawFramePrevious			= nullptr;	// Last sent Draw Command. Used by data compression, to generate delta between previous and current frame
+	BufferKeys							mPendingKeyIn;
 	ImGuiContext*						mpContext					= nullptr;	// Context that the remote drawing should use (either the one active when connection request happened, or a clone)
 	ImVec2								mSavedDisplaySize			= {0, 0};	// Save original display size on 'NewFrame' and restore it on 'EndFrame' (making sure size is still valid after a disconnect)
 	const void*							mpFontTextureData			= nullptr;	// Last font texture data send to server (used to detect if font was changed)
-	ImTextureID							mFontTextureID				= reinterpret_cast<ImTextureID>(0);
+	ImTextureID							mFontTextureID;
 	SavedImguiContext					mSavedContextValues;
-	Time								mTimeTracking;							// Used to update Dear ImGui time delta on remote context //SF remove?
+	Time								mTimeTracking;							// Used to update Dear ImGui time delta on remote context
 	std::atomic_uint32_t				mTexturesPendingSent;
 	std::atomic_uint32_t				mTexturesPendingCreated;
 	float								mMouseWheelVertPrev			= 0.f;
-	float								mMouseWheelHorizPrev		= 0.f;	
+	float								mMouseWheelHorizPrev		= 0.f;
 	bool								mbDisconnectRequest			= false;	// Waiting to Disconnect
+	bool								mbClientThreadActive		= false;
+	bool								mbListenThreadActive		= false;
 	bool								mbHasTextureUpdate			= false;
 	bool								mbIsDrawing					= false;	// We are inside a 'NetImgui::NewFrame' / 'NetImgui::EndFrame' (even if not for a remote draw)
 	bool								mbIsRemoteDrawing			= false;	// True if the rendering it meant for the remote netImgui server
@@ -92,13 +96,16 @@ struct ClientInfo
 	bool								mbInsideHook				= false;	// Currently inside ImGui hook callback
 	bool								mbInsideNewEnd				= false;	// Currently inside NetImgui::NewFrame() or NetImgui::EndFrame() (prevents recusrive hook call)
 	bool								mbValidDrawFrame			= false;	// If we should forward the drawdata to the server at the end of ImGui::Render()
-	char								PADDING[7];
+	eCompressionMode					mClientCompressionMode		= eCompressionMode::kUseServerSetting;
+	bool								mServerCompressionEnabled	= false;	// If Server would like compression to be enabled (mClientCompressionMode value can override this value)
+	bool								mServerCompressionSkip		= false;	// Force ignore compression setting for 1 frame
+	char								PADDING[2];
 		
 	ImGuiID								mhImguiHookNewframe			= 0;
 	ImGuiID								mhImguiHookEndframe			= 0;
 	
-	void								TextureProcessPending();
-	void								TextureProcessRemoval();
+	void								ProcessDrawData(const ImDrawData* pDearImguiData, ImGuiMouseCursor mouseCursor);
+	void								ProcessTexturePending();
 	inline bool							IsConnected()const;
 	inline bool							IsConnectPending()const;
 	inline bool							IsActive()const;

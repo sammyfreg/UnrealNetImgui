@@ -3,20 +3,42 @@ namespace NetImgui { namespace Internal
 // @sammyfreg TODO: Make Offset/Pointer test safer
 void CmdDrawFrame::ToPointers()
 {
-	if( !mpIndices.IsPointer() ) //Safer to test the first element after CmdHeader
+	if( !mpDrawGroups.IsPointer() )
 	{
-		mpVertices.ToPointer();
-		mpIndices.ToPointer();
-		mpDraws.ToPointer();
+		mpDrawGroups.ToPointer();
+		for (uint32_t i(0); i < mDrawGroupCount; ++i) {
+			mpDrawGroups[i].ToPointers();
+		}
 	}
 }
 
 void CmdDrawFrame::ToOffsets()
 {
+	if( !mpDrawGroups.IsOffset() )
+	{
+		for (uint32_t i(0); i < mDrawGroupCount; ++i) {
+			mpDrawGroups[i].ToOffsets();
+		}
+		mpDrawGroups.ToOffset();
+	}
+}
+
+void ImguiDrawGroup::ToPointers()
+{
+	if( !mpIndices.IsPointer() ) //Safer to test the first element after CmdHeader
+	{
+		mpIndices.ToPointer();
+		mpVertices.ToPointer();
+		mpDraws.ToPointer();
+	}
+}
+
+void ImguiDrawGroup::ToOffsets()
+{
 	if( !mpIndices.IsOffset() ) //Safer to test the first element after CmdHeader
 	{
-		mpVertices.ToOffset();
 		mpIndices.ToOffset();
+		mpVertices.ToOffset();
 		mpDraws.ToOffset();
 	}
 }
