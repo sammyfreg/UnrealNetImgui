@@ -140,8 +140,37 @@ bool Communications_Outgoing_Frame(ClientInfo& client)
 	CmdDrawFrame* pPendingDrawFrame = client.mPendingFrameOut.Release();
 	if( pPendingDrawFrame )
 	{
+		pPendingDrawFrame->mFrameIndex	= client.mFrameIndex++;
+		//---------------------------------------------------------------------
+		// Apply delta compression to DrawCommand, when requested
+		if( pPendingDrawFrame->mCompressed )
+		{
+			// Create a new Compressed DrawFrame Command
+			if( client.mpDrawFramePrevious && !client.mServerCompressionSkip ){
+				client.mpDrawFramePrevious->ToPointers();
+				CmdDrawFrame* pDrawFrameCompressed	= CompressCmdDrawFrame(client.mpDrawFramePrevious, pPendingDrawFrame);
+				netImguiDeleteSafe(client.mpDrawFramePrevious);
+				client.mpDrawFramePrevious			= pPendingDrawFrame;	// Keep original new command for next frame delta compression
+				pPendingDrawFrame					= pDrawFrameCompressed;	// Request compressed copy to be sent to server
+			}
+			// Save DrawCmd for next frame delta compression
+			else {
+				pPendingDrawFrame->mCompressed		= false;
+				client.mpDrawFramePrevious			= pPendingDrawFrame;
+			}
+		}
+		client.mServerCompressionSkip = false;
+
+		//---------------------------------------------------------------------
+		// Send Command to server
+		pPendingDrawFrame->ToOffsets();
 		bSuccess = Network::DataSend(client.mpSocketComs, pPendingDrawFrame, pPendingDrawFrame->mHeader.mSize);
-		netImguiDeleteSafe(pPendingDrawFrame);
+
+		//---------------------------------------------------------------------
+		// Free created data once sent (when not used in next frame)
+		if( client.mpDrawFramePrevious != pPendingDrawFrame ){
+			netImguiDeleteSafe(pPendingDrawFrame);
+		}
 	}
 	return bSuccess;
 }
@@ -196,7 +225,7 @@ bool Communications_Incoming(ClientInfo& client)
 			{
 			case CmdHeader::eCommands::Ping:		bPingReceived = true; break;
 			case CmdHeader::eCommands::Disconnect:	bOk = false; break;
-			case CmdHeader::eCommands::Input:		Communications_Incoming_Input(client, pCmdData); break;			
+			case CmdHeader::eCommands::Input:		Communications_Incoming_Input(client, pCmdData); break;
 			// Commands not received in main loop, by Client
 			case CmdHeader::eCommands::Invalid:
 			case CmdHeader::eCommands::Version:
@@ -221,7 +250,7 @@ bool Communications_Outgoing(ClientInfo& client)
 	if( bSuccess )
 		bSuccess = Communications_Outgoing_Background(client);
 	if( bSuccess )
-		bSuccess = Communications_Outgoing_Frame(client);	
+		bSuccess = Communications_Outgoing_Frame(client);
 	if( bSuccess )
 		bSuccess = Communications_Outgoing_Disconnect(client);
 	if( bSuccess )
@@ -491,31 +520,7 @@ void ClientInfo::ProcessDrawData(const ImDrawData* pDearImguiData, ImGuiMouseCur
 		return;
 
 	CmdDrawFrame* pDrawFrameNew = ConvertToCmdDrawFrame(pDearImguiData, mouseCursor);
-	pDrawFrameNew->mFrameIndex	= mFrameIndex++;
-	bool useCompression			 = mClientCompressionMode == eCompressionMode::kForceEnable;
-	useCompression				|= mClientCompressionMode == eCompressionMode::kUseServerSetting && mServerCompressionEnabled;
-	if( useCompression )
-	{
-		// Create a new Compressed DrawFrame Command
-		if( mpDrawFramePrevious && !mServerCompressionSkip && ((mpDrawFramePrevious->mFrameIndex+1) == pDrawFrameNew->mFrameIndex) ){
-			CmdDrawFrame* pDrawFrameCompress = CompressCmdDrawFrame(mpDrawFramePrevious, pDrawFrameNew);
-			netImguiDeleteSafe(mpDrawFramePrevious);
-			mpDrawFramePrevious = pDrawFrameNew;		// Keep original new command for next frame delta compression
-			pDrawFrameNew		= pDrawFrameCompress;	// Request compressed copy to be sent to server
-		}
-		// Create a copy that will be used next frame for delta compression
-		else
-		{
-			pDrawFrameNew->ToOffsets();
-			netImguiDeleteSafe(mpDrawFramePrevious);
-			mpDrawFramePrevious = netImguiSizedNew<CmdDrawFrame>(pDrawFrameNew->mHeader.mSize);
-			memcpy(mpDrawFramePrevious, pDrawFrameNew, pDrawFrameNew->mHeader.mSize);
-			mpDrawFramePrevious->ToPointers();
-		}
-	}
-
-	mServerCompressionSkip = false;
-	pDrawFrameNew->ToOffsets();
+	pDrawFrameNew->mCompressed	= mClientCompressionMode == eCompressionMode::kForceEnable || (mClientCompressionMode == eCompressionMode::kUseServerSetting && mServerCompressionEnabled);
 	mPendingFrameOut.Assign(pDrawFrameNew);
 }
 
