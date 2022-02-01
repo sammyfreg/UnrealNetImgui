@@ -7,7 +7,7 @@
 </p>
 
 # Summary
-### [Unreal Engine 4's](https://github.com/EpicGames) support of [NetImgui 1.6](https://github.com/sammyfreg/netImgui "NetImgui")
+### [Unreal Engine 4's](https://github.com/EpicGames) support of [NetImgui 1.7.5](https://github.com/sammyfreg/netImgui "NetImgui")
 
 **NetImgui** is a library to remotely display and control **Dear ImGui** menus with a connected NetImgui server application. 
 
