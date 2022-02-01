@@ -17,7 +17,7 @@ using UnrealBuildTool;
 //-------------------------------------------------------------------------------------------------
 //
 // Dear ImGui Library	: v1.86.5	(https://github.com/ocornut/imgui)
-// NetImGui Library		: v1.7.4	(https://github.com/sammyfreg/netImgui)
+// NetImGui Library		: v1.7.5	(https://github.com/sammyfreg/netImgui)
 //=================================================================================================
 
 public class NetImgui : ModuleRules
