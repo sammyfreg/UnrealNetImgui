@@ -4,12 +4,12 @@
 //! @Name		: NetImgui
 //=================================================================================================
 //! @author		: Sammy Fatnassi
-//! @date		: 2022/01/30note
-//!	@version	: v1.7.4
+//! @date		: 2022/01/31
+//!	@version	: v1.7.5
 //! @Details	: For integration info : https://github.com/sammyfreg/netImgui/wiki
 //=================================================================================================
-#define NETIMGUI_VERSION		"1.7.4"
-#define NETIMGUI_VERSION_NUM	10704
+#define NETIMGUI_VERSION		"1.7.5"
+#define NETIMGUI_VERSION_NUM	10705
 
 
 #ifdef NETIMGUI_IMPLEMENTATION
@@ -161,8 +161,8 @@ NETIMGUI_API	bool				IsDrawingRemote(void);
 NETIMGUI_API	void				SendDataTexture(ImTextureID textureId, void* pData, uint16_t width, uint16_t height, eTexFormat format);
 
 //=================================================================================================
-// Start a new Imgui Frame and wait for Draws commands, using a ImGui created internally
-// for remote drawing. Returns true if we are awaiting a new ImGui frame. 
+// Start a new Imgui Frame and wait for Draws commands, using ImContext that was active on connect.
+// Returns true if we are awaiting a new ImGui frame. 
 //
 // All ImGui drawing should be skipped when return is false.
 //
