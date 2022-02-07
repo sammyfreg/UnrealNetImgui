@@ -11,11 +11,37 @@ using UnrealBuildTool;
 // controlled from an external application ("Plugin\UnrealNetImgui\NetImguiServer\netImguiServer.exe")
 // but processed from this engine code. Works on various platform supported by UE4
 //
-// Note:	Displaying Dear ImGui menus directly in this engine, can be done by using the
-//			plugin UnrealImgui instead (https://github.com/segross/UnrealImGui). It was designed 
-//			local display of Imgui content but also support netImgui for remote display.
-//-------------------------------------------------------------------------------------------------
+// Note:	Displaying Dear ImGui menus InGame, can be done by using the plugin UnrealImgui instead
+//			(https://github.com/segross/UnrealImGui). It was designed for local display of 
+//			Imgui content but also has netImgui support in 'net_imgui' branch
 //
+//-------------------------------------------------------------------------------------------------
+// USAGE
+// Enable this plugin, start the NetImguiServer.exe application included with this plugin, and
+// start your game/editor. A connection should be established automatically when on the same PC.
+//
+// To connect on remote game, you can launch the game with a commandline parameter
+// to request a connection a running instance of NetImguiServer :
+//	'-netimguiserver [NETIMGUISERVER PC HOSTNAME/IP]'
+// 
+// or add the Client Hostname/IP in the NetImguiServer, to let the remote app try to connect to
+// the game instead. Note: You can specify a custom port for this client to wait connection on
+//  '-netimguiport [PORT NUMBER]
+//
+// Note:	If a connection to NetImguiServer was requested but failed, will default to waiting
+//			for a connection from the NetImguiServer instead.
+//
+//-------------------------------------------------------------------------------------------------
+// COMMANDLINE EXAMPLES
+//-------------------------------------------------------------------------------------------------
+// (empty)							Game will waits for connection on Port 'NETIMGUI_LISTENPORT_GAME / _EDITOR / _DEDICATED_SERVER (based on engine type)
+// "-netimguiport 10000"			Game will waits for connection on Port '10000'
+// "-netimguiserver"				Try connecting to NetImguiServer at 'localhost : NETIMGUI_CONNECTPORT'
+// "-netimguiserver localhost"		Try connecting to NetImguiServer at 'localhost : NETIMGUI_CONNECTPORT'
+// "-netimguiserver 192.168.1.2"	Try connecting to NetImguiServer at '192.168.1.2 : NETIMGUI_CONNECTPORT'
+// "-netimguiserver 192.168.1.2:60"	Try connecting to NetImguiServer at '192.168.1.2 : 60'
+//
+//-------------------------------------------------------------------------------------------------
 // Dear ImGui Library	: v1.86.5	(https://github.com/ocornut/imgui)
 // NetImGui Library		: v1.7.5	(https://github.com/sammyfreg/netImgui)
 //=================================================================================================
@@ -51,6 +77,11 @@ public class NetImgui : ModuleRules
 		// When true, the demo actor 'ANetImguiDemoActor' will be available to use in your game.
 		// Can be found in 'NetImguiDemoActor.cpp' and demonstrates basic use of Dear ImGui and NetImgui
 		bool bDemoActor_Enabled = true;
+
+		// Com Port used by this client, to try connecting to the remote NetImgui Server (8888 by default)
+		// Used when engine is lauched with command line parameter 'netimguiserver' to request a connection
+		// attempt, instead of waiting for server to reach the game
+		string kRemoteConnectPort	= "(NetImgui::kDefaultServerPort)";
 
 		// Com Port used by Game exe to wait for a connection from netImgui Server (8889 by default)
 		// NetImgui Server will try to find running game client on this port and connect to them
@@ -89,7 +120,8 @@ public class NetImgui : ModuleRules
 		//---------------------------------------------------------------------
 		PublicDefinitions.Add(string.Format("NETIMGUI_ENABLED={0}", bNetImgui_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FRAMESKIP_ENABLED={0}", bFrameSkip_Enabled ? 1 : 0));
-		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_ACTOR_ENABLED={0}", bDemoActor_Enabled ? 1 : 0));		
+		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_ACTOR_ENABLED={0}", bDemoActor_Enabled ? 1 : 0));
+		PublicDefinitions.Add("NETIMGUI_CONNECTPORT=" + kRemoteConnectPort);
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_GAME=" + kGameListenPort);
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_EDITOR=" + kEditorListenPort);
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_DEDICATED_SERVER=" + kDedicatedServerListenPort);

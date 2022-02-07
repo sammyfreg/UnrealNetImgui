@@ -121,7 +121,7 @@ public:
 protected:
 	void Update();
 	FDelegateHandle mUpdateCallback;
-	ImGuiContext* mpContext = nullptr;
+	struct ImGuiContext* mpContext = nullptr;
 };
 
 #if NETIMGUI_ENABLED

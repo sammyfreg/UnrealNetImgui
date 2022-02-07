@@ -30,21 +30,77 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 constexpr char FNetImguiModule::kModuleName[];
 
 #if NETIMGUI_ENABLED
-uint32_t GetListeningPort()
-{
-	if (IsRunningDedicatedServer())
+
+//=================================================================================================
+// If engine was launched with "-netimguiserver [hostname]", try connecting directly 
+// to the NetImguiServer application at the provided address.
+// 
+// [hostname] can be an ip address, a window pc hostname, etc...
+// 
+// You can also change the default port by appending ":[port number]"
+// The default NetImguiServer port is 8888 (unless modified in NetImgui.Build.cs)
+// 
+//-------------------------------------------------------------------------------------------------
+// COMMANDLINE EXAMPLES
+// "-netimguiserver localhost"		Try connecting to NetImguiServer at 'localhost : 8888'
+// "-netimguiserver 192.168.1.2"	Try connecting to NetImguiServer at '192.168.1.2 : 8888'
+// "-netimguiserver 192.168.1.2:60"	Try connecting to NetImguiServer at '192.168.1.2 : 60'
+//=================================================================================================
+void TryConnectingToServer(const FString& sessionName)
+{	
+	FString hostname;
+	if (FParse::Value(FCommandLine::Get(), TEXT("netimguiserver"), hostname))
 	{
-		return NETIMGUI_LISTENPORT_DEDICATED_SERVER;
-	}
-	else if (FApp::IsGame())
-	{
-		return NETIMGUI_LISTENPORT_GAME;
-	}
-	else
-	{
-		return NETIMGUI_LISTENPORT_EDITOR;
+		int32_t customPort = NETIMGUI_CONNECTPORT;
+		if (hostname.IsEmpty()) {
+			hostname = "localhost";
+		}
+		else {
+			int pos = hostname.Find(TEXT(":"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+			if( pos > 0 ){
+				FString portNumber = hostname.Right(hostname.Len()-pos-1);
+				hostname.LeftInline(pos);
+				customPort = FCString::Atoi(portNumber.GetCharArray().GetData());
+				customPort = (customPort == 0) ? NETIMGUI_CONNECTPORT : customPort;	// Restore Port Number if integer conversion failed
+			}
+		}
+		NetImgui::ConnectToApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), TCHAR_TO_ANSI(hostname.GetCharArray().GetData()), customPort);
 	}
 }
+
+//=================================================================================================
+// If the plugin was not able to reach the NetImguiServer (not requested, or bad address),
+// starts listening for the NetImguiServer to try connecting to it instead.
+// 
+// Will start waiting for a connection on this port by default (based on engine type)
+// 
+// Here are the default values (unless modified in NetImgui.Build.cs)
+// NETIMGUI_LISTENPORT_GAME				= 8889
+// NETIMGUI_LISTENPORT_EDITOR			= 8890
+// NETIMGUI_LISTENPORT_DEDICATED_SERVER	= 8891
+// 
+// User can request a specidic listening port by using commandline option "-netimguiport [Port Number]"
+// 
+//-------------------------------------------------------------------------------------------------
+// COMMANDLINE EXAMPLES
+// (empty)					Game will waits for connection on Default Port
+// "-netimguiport 10000"	Game will waits for connection on Port '10000'
+//=================================================================================================
+void TryListeningForServer(const FString& sessionName)
+{
+	if( !NetImgui::IsConnectionPending() && !NetImgui::IsConnected() )
+	{
+		uint32_t customPort = 0;
+		if ( !FParse::Value(FCommandLine::Get(), TEXT("netimguiport"), customPort) )
+		{
+			customPort =	IsRunningDedicatedServer()	? NETIMGUI_LISTENPORT_DEDICATED_SERVER :
+							FApp::IsGame()				? NETIMGUI_LISTENPORT_GAME :
+														  NETIMGUI_LISTENPORT_EDITOR;
+		}
+		NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), customPort);
+	}
+}
+
 #endif
 
 void FNetImguiModule::StartupModule()
@@ -79,10 +135,10 @@ void FNetImguiModule::StartupModule()
 
 	//---------------------------------------------------------------------------------------------
 	// Setup connection to wait for netImgui server to reach us
-	// Note:	The default behaviour is for the Game Client to wait for connection from the NetImgui Server.
-	//			It is possible to connect directly to the NetImgui Server insted, using 'NetImgui::ConnectToApp'
+	// Note:	The default behaviour is for the Game Client to wait for connection from the NetImgui Server
 	FString sessionName = FString::Format(TEXT("{0}-{1}"), { FApp::GetProjectName(), FPlatformProcess::ComputerName() });
-	NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), GetListeningPort());
+	TryConnectingToServer(sessionName);	// Try connecting to NetImguiServer
+	TryListeningForServer(sessionName);	// If failed connecting, start listening for the NetImguiServer
 	//---------------------------------------------------------------------------------------------
 
 	mUpdateCallback		= FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
