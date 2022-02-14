@@ -9,24 +9,67 @@
 #endif
 
 #if NETIMGUI_ENABLED
-	#include "../Private/ThirdParty/DearImgui/imgui.h"
+
+//=================================================================================================
+// Additional Header includes
+//=================================================================================================
+#include "../Private/ThirdParty/DearImgui/imgui.h"
+
+
+// List of defines to easily use each Icon available in 'Kenney's Game Icons'
+// For list available icons, see: https://kenney.nl/assets/game-icons and https://kenney.nl/assets/game-icons-expansion
+#if NETIMGUI_FONT_ICON_GAMEKENNEY	
+	#include "../Private/Fonts/IconFontCppHeader/IconsKenney.h"
 #endif
 
+// List of defines to easily use each Icon available 'Font Awesome Icons' (only the 'free' subset is made available)
+// For list of available icons, see: https://fontawesome.com/v5/search?m=free (Regular/Solid)
+#if NETIMGUI_FONT_ICON_AWESOME	
+	#include "../Private/Fonts/IconFontCppHeader/IconsFontAwesome5.h"
+#endif
+
+// List of defines to easily use each Icon available in 'Google's Material Design Icons'
+// For list of available icons, see: https://fonts.google.com/icons
+#if NETIMGUI_FONT_ICON_MATERIALDESIGN
+	#include "../Private/Fonts/IconFontCppHeader/IconsMaterialDesign.h"
+#endif
+
+// Note1:	You can toggle which Icon Font are active, in 'NetImgui.Build.cs'
+// 
+// Note2:	'Icon Game Kenney' can always be active, but only one from 
+//			'Font Awesome' or 'MaterialDesign Icon' can be active at a time
+// 
+// Note3:	For Icon usage example, please take a look at NetImguiDemoActor.cpp
+
+#endif //NETIMGUI_ENABLED
+
+//=================================================================================================
+// NETIMGUI Module
+//=================================================================================================
 class FNetImguiModule : public IModuleInterface
 {
 public:
 	static constexpr char kModuleName[] = "NetImgui";
 	enum class eFont
 	{
-		kProggyClean,
-		kCousineRegular,
-		kDroidSans,
-		kKarlaRegular,
-		kProggyTiny,
-		kRobotoMedium,
-
-		//... Your own font can be added here and loaded in 'FNetImguiModule::StartupModule()'
-
+		kProggyClean,		// Built-in Dear ImGui Font
+		kCousineFixed16,	// Fixed size font + 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
+		kCousineFixed20,	//  "
+		kCousineFixed24,	//  "
+		//kDroidSans,		// Disabled for now, to keep font size down (can be re-enabled)
+		//kKarlaRegular,	// Disabled for now, to keep font size down (can be re-enabled)
+		kProggyTiny,		// Tiny debug font
+		kRobotoMedium16,	// TrueType font + 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
+		kIcons32,			// Big Icons font with 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
+		kIcons64,			//  "
+	#if NETIMGUI_FONT_JAPANESE
+		kJapanese16,		// Japanese Mincho font + 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
+		kJapanese24,		// "
+		kJapanese32,		// "
+	#endif
+		
+		//... Your own font can be added here and loaded in 'FNetImguiModule::StartupModule()' in same order
+		//... Feel free to also add/remove font size for your convenience
 		_Count,
 	};
 

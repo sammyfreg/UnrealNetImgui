@@ -70,13 +70,31 @@ public class NetImgui : ModuleRules
 		// Toggle NetImgui support here
 		bool bNetImgui_Enabled = true;
 
-		// When true, only redraw Dear ImGui when needed, saving processing. 
+		// When true, only redraw Dear ImGui when needed, saving processing.
 		// When enabled, user must check "NetImgui::IsDrawing()" before emiting ImGui draws
 		bool bFrameSkip_Enabled = true;
 
 		// When true, the demo actor 'ANetImguiDemoActor' will be available to use in your game.
 		// Can be found in 'NetImguiDemoActor.cpp' and demonstrates basic use of Dear ImGui and NetImgui
 		bool bDemoActor_Enabled = true;
+
+		// Will load Japanese font 
+		// Note: If not using Japanese, set this to false, to save on memory (avoids 6MB font data table source include)
+		bool bFontJapanese_Enabled = true;
+
+		// Will load the 'Kenney Game Icons' font
+		// For list available icons, see: https://kenney.nl/assets/game-icons and https://kenney.nl/assets/game-icons-expansion
+		bool bFontIconGameKenney_Enabled = true;
+
+		// Will load the 'FontAwesome 5' font ('free' subset)
+		// Contains various icons for every use, using only the 
+		// For list of available icons, see: https://fontawesome.com/v5/search?m=free (Regular/Solid)
+		bool bFontIconAwesome_Enabled = true;
+
+		// Will load 'Google Material Designs icons' font
+		// Note: Can either have IconAwesome or IconMaterialDesign, not both
+		// For list of available icons, see: https://fonts.google.com/icons
+		bool bFontIconMaterialDesign_Enabled = false;
 
 		// Com Port used by this client, to try connecting to the remote NetImgui Server (8888 by default)
 		// Used when engine is lauched with command line parameter 'netimguiserver' to request a connection
@@ -121,11 +139,20 @@ public class NetImgui : ModuleRules
 		PublicDefinitions.Add(string.Format("NETIMGUI_ENABLED={0}", bNetImgui_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FRAMESKIP_ENABLED={0}", bFrameSkip_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_ACTOR_ENABLED={0}", bDemoActor_Enabled ? 1 : 0));
+
+		// Fonts support
+		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_JAPANESE={0}", bFontJapanese_Enabled ? 1 : 0));
+		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_ICON_GAMEKENNEY={0}", bFontIconGameKenney_Enabled ? 1 : 0));
+		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_ICON_AWESOME={0}", bFontIconAwesome_Enabled ? 1 : 0));
+		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_ICON_MATERIALDESIGN={0}", bFontIconMaterialDesign_Enabled && !bFontIconAwesome_Enabled ? 1 : 0));
+		
+		// Network Port configs
 		PublicDefinitions.Add("NETIMGUI_CONNECTPORT=" + kRemoteConnectPort);
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_GAME=" + kGameListenPort);
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_EDITOR=" + kEditorListenPort);
 		PublicDefinitions.Add("NETIMGUI_LISTENPORT_DEDICATED_SERVER=" + kDedicatedServerListenPort);
-		
+		 
+		// Misc
 		PrivateDefinitions.Add("NETIMGUI_WINSOCKET_ENABLED=0");      // Using Unreal sockets, no need for built-in sockets
 		PrivateDefinitions.Add("NETIMGUI_POSIX_SOCKETS_ENABLED=0");  // Using Unreal sockets, no need for built-in sockets
 		PrivateDefinitions.Add(string.Format("RUNTIME_LOADER_ENABLED={0}", bEnableRuntimeLoader ? 1 : 0));
