@@ -71,11 +71,15 @@ public class NetImgui : ModuleRules
 		bool bNetImgui_Enabled = true;
 
 		// When true, only redraw Dear ImGui when needed, saving processing.
-		// When enabled, user must check "NetImgui::IsDrawing()" before emiting ImGui draws
+		// When enabled, user must check "NetImguiHelper::IsDrawing()" before emiting ImGui draws
 		bool bFrameSkip_Enabled = true;
 
+		// When true, the Dear ImGui demo window will be available in the NetImgui mainbr menu.
+		// Usefull as a reference on what programmer can do with Dear ImGui
+		bool bDemoImgui_Enabled = true;
+
 		// When true, the demo actor 'ANetImguiDemoActor' will be available to use in your game.
-		// Can be found in 'NetImguiDemoActor.cpp' and demonstrates basic use of Dear ImGui and NetImgui
+		// Can be found in 'NetImguiDemoActor.cpp', demonstrating how to use NetImgui in your own project
 		bool bDemoActor_Enabled = true;
 
 		// Will load Japanese font 
@@ -97,7 +101,7 @@ public class NetImgui : ModuleRules
 		bool bFontIconMaterialDesign_Enabled = false;
 
 		// Com Port used by this client, to try connecting to the remote NetImgui Server (8888 by default)
-		// Used when engine is lauched with command line parameter 'netimguiserver' to request a connection
+		// Used when engine is launched with command line parameter 'netimguiserver' to request a connection
 		// attempt, instead of waiting for server to reach the game
 		string kRemoteConnectPort	= "(NetImgui::kDefaultServerPort)";
 
@@ -138,6 +142,7 @@ public class NetImgui : ModuleRules
 		//---------------------------------------------------------------------
 		PublicDefinitions.Add(string.Format("NETIMGUI_ENABLED={0}", bNetImgui_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FRAMESKIP_ENABLED={0}", bFrameSkip_Enabled ? 1 : 0));
+		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_IMGUI_ENABLED={0}", bDemoImgui_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_ACTOR_ENABLED={0}", bDemoActor_Enabled ? 1 : 0));
 
 		// Fonts support

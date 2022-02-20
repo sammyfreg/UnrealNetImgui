@@ -15,21 +15,34 @@
 #include "GameFramework/Actor.h"
 #include "NetImguiDemoActor.generated.h"
 
+#ifndef NETIMGUI_DEMO_ACTOR_ENABLED
+	#define NETIMGUI_DEMO_ACTOR_ENABLED 0
+#endif
+
+#if !defined(NETIMGUI_ENABLED) || !NETIMGUI_ENABLED
+	#undef NETIMGUI_DEMO_ACTOR_ENABLED
+	#define NETIMGUI_DEMO_ACTOR_ENABLED 0
+#endif
+
 UCLASS()
 class NETIMGUI_API ANetImguiDemoActor : public AActor
 {
 	GENERATED_BODY()
-
-public:	
+public:
 	// Sets default values for this actor's properties
-	ANetImguiDemoActor(){ PrimaryActorTick.bCanEverTick = NETIMGUI_DEMO_ACTOR_ENABLED; }
+	ANetImguiDemoActor();
 
 #if NETIMGUI_DEMO_ACTOR_ENABLED
+	
 	// Makes sure tick is called even outside of PIE
 	virtual bool ShouldTickIfViewportsOnly() const override{ return true; }
 	
-public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-#endif //NETIMGUI_DEMO_ACTOR_ENABLED
+
+protected:
+	void DrawImgui_OncePerActor();
+	void DrawImgui_OncePerFrame();
+
+#endif //#if NETIMGUI_DEMO_ACTOR_ENABLED
 };
