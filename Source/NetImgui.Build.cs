@@ -24,8 +24,8 @@ using UnrealBuildTool;
 // to request a connection a running instance of NetImguiServer :
 //	'-netimguiserver [NETIMGUISERVER PC HOSTNAME/IP]'
 // 
-// or add the Client Hostname/IP in the NetImguiServer, to let the remote app try to connect to
-// the game instead. Note: You can specify a custom port for this client to wait connection on
+// or add the Client Hostname/IP in the NetImguiServer configs, to let the remote app try to connect
+// to the game instead. Note: You can specify a custom port for this client to wait connection on
 //  '-netimguiport [PORT NUMBER]
 //
 // Note:	If a connection to NetImguiServer was requested but failed, will default to waiting
@@ -43,7 +43,7 @@ using UnrealBuildTool;
 //
 //-------------------------------------------------------------------------------------------------
 // Dear ImGui Library	: v1.86.5	(https://github.com/ocornut/imgui)
-// NetImGui Library		: v1.7.5	(https://github.com/sammyfreg/netImgui)
+// NetImGui Library		: v1.7.6	(https://github.com/sammyfreg/netImgui)
 //=================================================================================================
 
 public class NetImgui : ModuleRules
@@ -74,7 +74,12 @@ public class NetImgui : ModuleRules
 		// When enabled, user must check "NetImguiHelper::IsDrawing()" before emiting ImGui draws
 		bool bFrameSkip_Enabled = true;
 
-		// When true, the Dear ImGui demo window will be available in the NetImgui mainbr menu.
+		// When true, use the 'FreeType' library to generate the font texture
+		// This means including the Freetype library (already included with editor) in the build
+		// Generates sligthly better result than the default stb_truetype default code
+		bool bFreeType_Enabled = true;
+
+		// When true, the Dear ImGui demo window will be available in the NetImgui mainmenu bar.
 		// Usefull as a reference on what programmer can do with Dear ImGui
 		bool bDemoImgui_Enabled = true;
 
@@ -129,8 +134,15 @@ public class NetImgui : ModuleRules
 
 		PublicDependencyModuleNames.AddRange( new string[] { "Core", "Projects"} );
 		PrivateDependencyModuleNames.AddRange( new string[] { "CoreUObject", "Engine", "Sockets" } );
+		PrivateIncludePaths.Add("Private/ThirdParty/DearImgui");
+
 		PCHUsage = PCHUsageMode.NoSharedPCHs; // Prevents problem with Dear ImGui/NetImgui sources not including the right first header
 		PrivatePCHHeaderFile = "Public/NetImguiModule.h";
+
+		bFreeType_Enabled &= bNetImgui_Enabled;
+		if (bFreeType_Enabled){
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "FreeType2");
+		}
 
 #if UE_4_24_OR_LATER
 		bLegacyPublicIncludePaths = false;
@@ -142,9 +154,10 @@ public class NetImgui : ModuleRules
 		//---------------------------------------------------------------------
 		PublicDefinitions.Add(string.Format("NETIMGUI_ENABLED={0}", bNetImgui_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FRAMESKIP_ENABLED={0}", bFrameSkip_Enabled ? 1 : 0));
+		PublicDefinitions.Add(string.Format("NETIMGUI_FREETYPE_ENABLED={0}", bFreeType_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_IMGUI_ENABLED={0}", bDemoImgui_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_ACTOR_ENABLED={0}", bDemoActor_Enabled ? 1 : 0));
-
+		
 		// Fonts support
 		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_JAPANESE={0}", bFontJapanese_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_ICON_GAMEKENNEY={0}", bFontIconGameKenney_Enabled ? 1 : 0));

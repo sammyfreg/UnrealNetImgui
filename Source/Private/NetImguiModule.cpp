@@ -13,6 +13,10 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 #include "Misc/CoreDelegates.h"
 #include "ThirdParty/NetImgui/NetImgui_Api.h"
 
+#if NETIMGUI_FREETYPE_ENABLED
+#include "misc/freetype/imgui_freetype.h"
+#endif
+
 //=================================================================================================
 // Binary Font converted to c data array 
 // (using Dear Imgui 'binary_to_compressed_c.cpp')
@@ -39,7 +43,6 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 #if NETIMGUI_FONT_JAPANESE
 	#include "Fonts/FontIPAexMincho/IPAexMincho.cpp"
 #endif
-
 
 //=================================================================================================
 // Statics variables
@@ -132,21 +135,30 @@ void TryListeningForServer(const FString& sessionName)
 // generating them. More info can be found here :
 //		https://github.com/ocornut/imgui/blob/master/docs/FONTS.md
 //=================================================================================================
-void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_t FontDataSize, bool extraIconGlyphs, const ImWchar* pGlyphRange=nullptr )
+void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_t FontDataSize, bool extraIconGlyphs, bool appendJapanese=false, const ImWchar* pGlyphRange=nullptr )
 {
-	ImFontConfig Config;
+	ImFontConfig Config;	
+#if NETIMGUI_FREETYPE_ENABLED
+	Config.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LightHinting;	// Without this, kanji character looks wrong in smaller font size
+#endif	
+
 	ImFontAtlas* pFontAtlas = ImGui::GetIO().Fonts;
-	
 	name += FString::Printf(TEXT(" (%ipx)"), static_cast<int>(pxSize));
 	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), TCHAR_TO_UTF8(name.GetCharArray().GetData()));
-	
 	pFontAtlas->AddFontFromMemoryCompressedTTF(pFontData,	FontDataSize, pxSize, &Config, pGlyphRange);
+	
 	Config.MergeMode = true;
-	//Config.PixelSnapH = true;
-	Config.GlyphOffset.y = 2;	// Try aligning the icons a little more with the text
-	pxSize -= 2;
+#if NETIMGUI_FONT_JAPANESE
+	if (appendJapanese) {
+		Config.RasterizerMultiply = 1.5f;		// Boost kanji color intensity slightly, making them more readable
+		pFontAtlas->AddFontFromMemoryCompressedTTF(IPAexMincho_compressed_data,	IPAexMincho_compressed_size, pxSize, &Config, pFontAtlas->GetGlyphRangesJapanese());
+		Config.RasterizerMultiply = 1.f;
+	}
+#endif
 
 	if( extraIconGlyphs ){
+		Config.GlyphOffset.y = pxSize * 0.2f;	// Try aligning the icons a little more with the text, preventing icon to overlap previous text line
+
 #if NETIMGUI_FONT_ICON_GAMEKENNEY
 		static const ImWchar iconKenney_ranges[] = { ICON_MIN_KI, ICON_MAX_KI, 0 };
 		pFontAtlas->AddFontFromMemoryCompressedTTF(KenneyIcon_compressed_data, KenneyIcon_compressed_size, pxSize, &Config, iconKenney_ranges);
@@ -159,7 +171,6 @@ void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_
 #if NETIMGUI_FONT_ICON_MATERIALDESIGN
 		static const ImWchar iconMaterialDesign_ranges[] = { ICON_MIN_MD, ICON_MAX_MD, 0 };
 		pFontAtlas->AddFontFromMemoryCompressedTTF(MaterialIcons_Regular_compressed_data, MaterialIcons_Regular_compressed_size, pxSize, &Config, iconMaterialDesign_ranges);
-		
 #endif
 	}
 }
@@ -322,9 +333,9 @@ void FNetImguiModule::StartupModule()
 	// IMPORTANT: Must be added in same order as enum 'FNetImguiModule::eFont'
 	//---------------------------------------------------------------------------------------------
 	io.Fonts->AddFontDefault();	// Proggy Clean
-	AddFontGroup(TEXT("Cousine Fixed"),		16.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
-	AddFontGroup(TEXT("Cousine Fixed"),		20.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
-	AddFontGroup(TEXT("Cousine Fixed"),		24.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
+	AddFontGroup(TEXT("Cousine Fixed"),		16.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true, true);
+	AddFontGroup(TEXT("Cousine Fixed"),		20.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true, true);
+	AddFontGroup(TEXT("Cousine Fixed"),		24.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true, true);
 	AddFontGroup(TEXT("Karla Regular"),		16.f, Karla_Regular_compressed_data,	Karla_Regular_compressed_size,		true);
 	AddFontGroup(TEXT("Droid Sans"),		20.f, Droid_Sans_compressed_data,		Droid_Sans_compressed_size,			true);
 	AddFontGroup(TEXT("Proggy Tiny"),		10.f, Proggy_Tiny_compressed_data,		Proggy_Tiny_compressed_size,		false);
@@ -334,9 +345,7 @@ void FNetImguiModule::StartupModule()
 	AddFontGroup(TEXT("Icons"),				64.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
 
 #if NETIMGUI_FONT_JAPANESE
-	AddFontGroup(TEXT("日本語"),				16.f, IPAexMincho_compressed_data,		IPAexMincho_compressed_size,		true, io.Fonts->GetGlyphRangesJapanese());
-	AddFontGroup(TEXT("日本語"),				24.f, IPAexMincho_compressed_data,		IPAexMincho_compressed_size,		true, io.Fonts->GetGlyphRangesJapanese());	
-	AddFontGroup(TEXT("日本語"),				32.f, IPAexMincho_compressed_data,		IPAexMincho_compressed_size,		true, io.Fonts->GetGlyphRangesJapanese());
+	AddFontGroup(TEXT("日本語"),				32.f, IPAexMincho_compressed_data,		IPAexMincho_compressed_size,		true, false, io.Fonts->GetGlyphRangesJapanese());
 #endif
 	// ... add extra fonts here (and add extra entry in 'FNetImguiModule::eFont' enum)
 	

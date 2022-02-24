@@ -92,7 +92,7 @@ public:
 	enum class eFont
 	{
 		kProggyClean,		// Built-in Dear ImGui Font
-		kCousineFixed16,	// Fixed size font + 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
+		kCousineFixed16,	// Fixed size font + Japanese Mincho font + 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
 		kCousineFixed20,	//  "
 		kCousineFixed24,	//  "
 		kDroidSans,			// TrueType font + 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
@@ -102,9 +102,7 @@ public:
 		kIcons32,			// Big Icons font with 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
 		kIcons64,			//  "
 	#if NETIMGUI_FONT_JAPANESE
-		kJapanese16,		// Japanese Mincho font + 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
-		kJapanese24,		// "
-		kJapanese32,		// "
+		kJapanese32,		// Japanese Mincho font + 'Kenney Game Icons' + 'Font Awesome Icons' or 'Material Design Icons'
 	#endif
 		
 		//... Your own font can be added here and loaded in 'FNetImguiModule::StartupModule()' in same order

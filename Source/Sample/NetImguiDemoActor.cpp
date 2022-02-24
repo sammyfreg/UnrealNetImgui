@@ -29,39 +29,32 @@ static bool sbShowDemoNetImgui	= false;
 
 static const ImVec4 kColorHighlight = ImVec4(0.1f, 0.85f, 0.1f, 1.0f);
 
-enum eStringIcons : uint8_t { Name, Visibility, Position, _Count };
-
-const char* zStringIcons[eStringIcons::_Count] = 
-{
 
 #if NETIMGUI_FONT_ICON_AWESOME
-	ICON_FA_INFO_CIRCLE " Name",
-	ICON_FA_EYE,
-	ICON_FA_MAP_MARKER_ALT " Position",
+#define CLIENTSTRING_NAME	ICON_FA_INFO_CIRCLE " Name"
+#define CLIENTSTRING_SHOW	ICON_FA_EYE
+#define CLIENTSTRING_POS	ICON_FA_MAP_MARKER_ALT " Position"
 
 #elif NETIMGUI_FONT_ICON_MATERIALDESIGN
-	ICON_MD_INFO  " Name", 
-	ICON_MD_VISIBILITY, 
-	ICON_MD_PLACE  " Position", 
-
-#elif NETIMGUI_FONT_ICON_GAMEKENNEY
+#define CLIENTSTRING_NAME	ICON_MD_INFO  " Name"
+#define CLIENTSTRING_SHOW	ICON_MD_VISIBILITY
+#define CLIENTSTRING_POS	ICON_MD_PLACE  " Position"
 
 #else
-	"Name", 
-	"Position", 
-	"Visible"
+#define CLIENTSTRING_NAME	"Name"
+#define CLIENTSTRING_SHOW	"Position"
+#define CLIENTSTRING_POS	"Visible"
 #endif
-};
 
 //=================================================================================================
 // DrawImgui_OncePerFrame
 //-------------------------------------------------------------------------------------------------
-
+// Note:	We do not need to check NetImguiHelper::IsDrawing() since this callback method is
+//			only invoked by NetImgui client code, when the server wants some new Dear Imgui drawing
 //=================================================================================================
 void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 {
-    // Note: We do not need to check NetImguiHelper::IsDrawing() since this callback method is
-	// only invoked when NetImgui wants some Dear Imgui drawing
+    
 	
 	//---------------------------------------------------------------------------------------------
 	// Insert Demo entry in MainMenu bar
@@ -82,8 +75,9 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 	{
 		if( ImGui::Begin("DemoActor: PerFrame") )
 		{
-			ImGui::Text("Imgui callback called once per frame");
-		
+			ImGui::TextWrapped(u8"This Windows is drawn once per frame (when NetImguiServer request it), using a NetImgui callback.");
+			ImGui::NewLine();
+
 			//-------------------------------------------------------------------------------------
 			// Demonstrations of using icons and japanese font
 			// Note:	To create a utf8 string that can represent unicode character, 
@@ -91,60 +85,59 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 			//-------------------------------------------------------------------------------------
 			if( ImGui::CollapsingHeader("Icons & Font", ImGuiTreeNodeFlags_DefaultOpen))
 			{
+				uint32 iconAnimFrame = (GFrameNumber/60);
+
 			#if NETIMGUI_FONT_JAPANESE
 				ImGui::TextColored(kColorHighlight, "Japanese font");
 				{
+					//--- Showcase using a utf8 string mixing japanese and latin content ---
 					NetImguiHelper::ScopedFont iconFont(FNetImguiModule::eFont::kJapanese32);
-					//
-					// Showcase using a utf8 string mixing japanese and latin content
-					//
 					ImGui::TextWrapped(u8"日本語とカタカナとひらがなとlatinを使用することができます。やった！");
 				}
 			#endif
+			
 			#if NETIMGUI_FONT_ICON_GAMEKENNEY
+				//--- Showcase using a FString to mix icon and text together ---
 				ImGui::NewLine();
-				//
-				// Showcase using a FString to mix icon and text together
-				//
 				FString titleKenney = FString::Format(TEXT("{0} Game Kenney Icons"), {UTF8_TO_TCHAR(ICON_KI_INFO_CIRCLE)});
 				ImGui::TextColored(kColorHighlight, TCHAR_TO_UTF8(*titleKenney));
-				//
-				// Showcase using multiple strings that includes normal text and icons, that are merged together in 1 utf8 string constant
-				//
+
+				//--- Showcase using multiple strings that includes normal text and icons, merged together in 1 utf8 string constant ---
 				ImGui::TextUnformatted("I " ICON_KI_HEART " icons in my text.");
 				{
 					NetImguiHelper::ScopedFont iconFont(FNetImguiModule::eFont::kIcons64);
-					ImGui::TextUnformatted(ICON_KI_GAMEPAD " " ICON_KI_DPAD_TOP " " ICON_KI_BUTTON_A " " ICON_KI_BUTTON_B " " ICON_KI_BUTTON_START " " ICON_KI_BUTTON_SELECT);
+					const char* zAnimation[]={ICON_KI_DPAD, ICON_KI_DPAD_TOP, ICON_KI_DPAD_RIGHT, ICON_KI_DPAD_BOTTOM, ICON_KI_DPAD_LEFT };
+					ImGui::Text( ICON_KI_GAMEPAD " %s "  ICON_KI_BUTTON_START " " ICON_KI_BUTTON_SELECT " " ICON_KI_BUTTON_A " " ICON_KI_BUTTON_B , zAnimation[iconAnimFrame%UE_ARRAY_COUNT(zAnimation)]);
 				}
 			#endif
+			
 			#if NETIMGUI_FONT_ICON_AWESOME
-				ImGui::NewLine();
-				//
-				// Showcase using a FString to mix icon and text together
-				//
+				//--- Showcase using a FString to mix icon and text together ---
 				FString titleAwesome = FString::Format(TEXT("{0} Font Awesome Icons"), {UTF8_TO_TCHAR(ICON_FA_INFO_CIRCLE)});
 				ImGui::TextColored(kColorHighlight, TCHAR_TO_UTF8(*titleAwesome));
-				//
-				// Showcase using a utf8 string with icons inserted in it as a regular printf string constant
-				//
+				
+				//--- Showcase using a utf8 string with icons inserted in it as a regular printf string constant ---
 				ImGui::Text(u8"I %s icons in my text.", ICON_FA_HEART);
 				{
 					NetImguiHelper::ScopedFont iconFont(FNetImguiModule::eFont::kIcons64);
-					const char* zBattery[]={ICON_FA_BATTERY_EMPTY, ICON_FA_BATTERY_QUARTER, ICON_FA_BATTERY_HALF, ICON_FA_BATTERY_THREE_QUARTERS, ICON_FA_BATTERY_FULL };
-					ImGui::Text(ICON_FA_SMILE " " ICON_FA_EXPAND_ARROWS_ALT " " ICON_FA_COGS " " ICON_FA_ARROW_ALT_CIRCLE_LEFT " " ICON_FA_ARROW_ALT_CIRCLE_RIGHT " %s", zBattery[(GFrameNumber/60)%UE_ARRAY_COUNT(zBattery)]);
+					const char* zAnimation[]={ICON_FA_BATTERY_EMPTY, ICON_FA_BATTERY_QUARTER, ICON_FA_BATTERY_HALF, ICON_FA_BATTERY_THREE_QUARTERS, ICON_FA_BATTERY_FULL };
+					ImGui::Text(ICON_FA_SMILE " " ICON_FA_EXPAND_ARROWS_ALT " " ICON_FA_COGS " " ICON_FA_ARROW_ALT_CIRCLE_LEFT " " ICON_FA_ARROW_ALT_CIRCLE_RIGHT " %s", zAnimation[iconAnimFrame%UE_ARRAY_COUNT(zAnimation)]);
 				}
 			#endif
+			
 			#if NETIMGUI_FONT_ICON_MATERIALDESIGN
-				ImGui::NewLine();
+				//--- Showcase using a FString to mix icon and text together ---
 				FString titleMaterial = FString::Format(TEXT("{0} Material Design Icons"), {UTF8_TO_TCHAR(ICON_MD_INFO)});
 				ImGui::TextColored(kColorHighlight, TCHAR_TO_UTF8(*titleMaterial));
+				//--- Showcase using a utf8 string with icons inserted in it as a regular printf string constant ---
 				ImGui::TextUnformatted("I " ICON_MD_FAVORITE " icons in my text.");
 				{
 					NetImguiHelper::ScopedFont iconFont(FNetImguiModule::eFont::kIcons64);
+					const char* zAnimation[]={ ICON_MD_BRIGHTNESS_1, ICON_MD_BRIGHTNESS_2, ICON_MD_BRIGHTNESS_3, ICON_MD_BRIGHTNESS_4, ICON_MD_BRIGHTNESS_5, ICON_MD_BRIGHTNESS_6, ICON_MD_BRIGHTNESS_7 };
+					ImGui::Text(ICON_MD_SENTIMENT_SATISFIED " " ICON_MD_OPEN_WITH " " ICON_MD_SETTINGS " " ICON_MD_KEYBOARD_ARROW_LEFT " " ICON_MD_KEYBOARD_ARROW_RIGHT " %s", zAnimation[iconAnimFrame%UE_ARRAY_COUNT(zAnimation)]);
 				}
 			#endif
 			}
-
 
 			//-------------------------------------------------------------------------------------
 			// Display a list of actor in the Scene
@@ -153,10 +146,6 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 			if( ImGui::CollapsingHeader("Actors", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				static uint32 sCount = 0;
-				static char sFilterName[256];
-				ImGui::InputText("Name Filter", sFilterName, sizeof(sFilterName) );
-				ImGui::Text("%d actors in world '%ls'.", sCount, *GetNameSafe(GWorld));
-
 				if (ImGui::BeginTable("Actors List", 3, ImGuiTableFlags_RowBg|ImGuiTableFlags_Resizable|ImGuiTableFlags_Reorderable))
 				{
 					// Table header, with a specific font assigned
@@ -165,9 +154,9 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 						ImVec4 tableBgColor = ImGui::GetStyleColorVec4(ImGuiCol_TableHeaderBg);
 						tableBgColor.w = 1.f;
 						ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, tableBgColor);
-						ImGui::TableSetupColumn(zStringIcons[eStringIcons::Name]);
-						ImGui::TableSetupColumn(zStringIcons[eStringIcons::Position]);
-						ImGui::TableSetupColumn(zStringIcons[eStringIcons::Visibility], ImGuiTableColumnFlags_WidthFixed, 40.0f);
+						ImGui::TableSetupColumn(CLIENTSTRING_NAME);
+						ImGui::TableSetupColumn(CLIENTSTRING_POS);
+						ImGui::TableSetupColumn(CLIENTSTRING_SHOW, ImGuiTableColumnFlags_WidthFixed, 40.0f);
 						if( ImGui::TableGetColumnFlags(2) & ImGuiTableColumnFlags_IsHovered ){
 							ImGui::SetTooltip("Toggle visibility (Editor only)");
 						}
@@ -186,7 +175,7 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 						
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::TextUnformatted(TCHAR_TO_UTF8(*(pActor->GetName())));
+							ImGui::TextUnformatted(TCHAR_TO_UTF8(*pActor->GetName()));
 						
 							ImGui::TableNextColumn();
 							FVector pos = pActor->GetTransform().GetLocation();
@@ -222,43 +211,49 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 //=================================================================================================
 void ANetImguiDemoActor::DrawImgui_OncePerActor()
 {
-	//---------------------------------------------------------------------------------------------
-    // Avoid drawing ImGui menus when not expecting a new frame, reducing CPU cost.
-    if( NetImguiHelper::IsDrawing() )
-    //---------------------------------------------------------------------------------------------
-    {
-		if( sbShowDemoNetImgui )
+	if( sbShowDemoNetImgui )
+	{
+		//-----------------------------------------------------------------------------------------
+		// Every 'ANetImguiDemoActor' display the following content
+		//-----------------------------------------------------------------------------------------
+		FString windowName = FString::Format(TEXT("DemoActor: {0}"), {GetName()});
+		ImGui::SetNextWindowSize(ImVec2(400.f, 200.f), ImGuiCond_Once);
+		if (ImGui::Begin(TCHAR_TO_UTF8(*windowName)))
 		{
-			//-----------------------------------------------------------------------------------------
-			// A single 'ANetImguiActor' will display the following content
-			// (could use a FCoreDelegates::OnBeginFrame delegate instead of checking frame number)
-			//-----------------------------------------------------------------------------------------
-			static uint64 sLastFrame	= 0;
-			static float sFontScale		= 1.f;
-		
-			if( sLastFrame != GFrameCounter )
-			{    
-				sLastFrame = GFrameCounter;
-			}
-
-			//-----------------------------------------------------------------------------------------
-			// Every 'ANetImguiDemoActor' display the following content
-			//-----------------------------------------------------------------------------------------
-			FString windowName = FString::Format(TEXT("DemoActor: {0}"), {GetName()});
-			if (ImGui::Begin(TCHAR_TO_UTF8(*windowName)))
-			{
-				ImGui::Text(u8"Test");
-			}
-			ImGui::End();
+			ImGui::TextWrapped(u8"One window per 'ANetImguiDemoActor' instance will be displayed. The Dear ImGui content is being drawn inside the actor's tick method, without any callback needed.");
+			ImGui::NewLine();
+				
+			ImGui::TextColored(kColorHighlight, "Name: ");
+			ImGui::SameLine(64.f); ImGui::TextUnformatted(TCHAR_TO_UTF8(*GetName()));
+			
+			FVector pos = GetTransform().GetLocation();
+			ImGui::TextColored(kColorHighlight, "Pos: ");
+			ImGui::SameLine(64.f); ImGui::Text("(%.02f, %.02f, %.02f)", pos.X, pos.Y, pos.Z);
 		}
-    }
+		ImGui::End();
+	}
 }
 
-
+//=================================================================================================
+// Tick
+//-------------------------------------------------------------------------------------------------
+// Main update method of this actor. Called every frame on each 'ANetImguiDemoActor' instance
+//=================================================================================================
 void ANetImguiDemoActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	DrawImgui_OncePerActor();
+	
+	// This test is mandatory when 'bFrameSkip_Enabled' is enabled in 'NetImgui.Build.cs'
+	// since this Tick method is called every frame and we want to avoid drawing content unless
+	// expecting it this frame.
+	// 
+	// Note:	This Dear Imgui drawing doesn't have to occurs on a Tick method, the only 
+	//			requirement is that it is on the gamethread and 'NetImguiHelper::IsDrawing()'
+	//			is tested before drawing
+    if( NetImguiHelper::IsDrawing() ) 
+    {
+		DrawImgui_OncePerActor();
+	}
 }
 
 #endif // #if NETIMGUI_DEMO_ACTOR_ENABLED
@@ -283,7 +278,6 @@ ANetImguiDemoActor::ANetImguiDemoActor()
 	// no ANetImguiDemoActor instance in the scene.
 	if (HasAnyFlags(RF_ClassDefaultObject)) {
 		FNetImguiModule::OnDrawImgui.AddUObject(this, &ANetImguiDemoActor::DrawImgui_OncePerFrame);
-		//FCoreDelegates::OnBeginFrame.AddUObject(this, &ANetImguiDemoActor::DrawImgui_OncePerFrame);
 	}
 #endif
 }
