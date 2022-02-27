@@ -74,6 +74,11 @@ public class NetImgui : ModuleRules
 		// When enabled, user must check "NetImguiHelper::IsDrawing()" before emiting ImGui draws
 		bool bFrameSkip_Enabled = true;
 
+		// When true, the plugin will automatically start listening for a connection from the NetImguiServer
+		// You can disable it, and rely on launching the game with netimgui commandline options
+		// or using a UnrealCommand to connect/start listening
+		bool bAutoWaitConnection_Enabled = true;
+
 		// When true, use the 'FreeType' library to generate the font texture
 		// This means including the Freetype library (already included with editor) in the build
 		// Generates sligthly better result than the default stb_truetype default code
@@ -154,6 +159,7 @@ public class NetImgui : ModuleRules
 		//---------------------------------------------------------------------
 		PublicDefinitions.Add(string.Format("NETIMGUI_ENABLED={0}", bNetImgui_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FRAMESKIP_ENABLED={0}", bFrameSkip_Enabled ? 1 : 0));
+		PublicDefinitions.Add(string.Format("NETIMGUI_WAITCONNECTION_AUTO_ENABLED={0}", bAutoWaitConnection_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FREETYPE_ENABLED={0}", bFreeType_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_IMGUI_ENABLED={0}", bDemoImgui_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_ACTOR_ENABLED={0}", bDemoActor_Enabled ? 1 : 0));

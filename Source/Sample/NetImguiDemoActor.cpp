@@ -91,7 +91,7 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 				ImGui::TextColored(kColorHighlight, "Japanese font");
 				{
 					//--- Showcase using a utf8 string mixing japanese and latin content ---
-					NetImguiHelper::ScopedFont iconFont(FNetImguiModule::eFont::kJapanese32);
+					NetImguiScopedFont iconFont(FNetImguiModule::eFont::kJapanese32);
 					ImGui::TextWrapped(u8"日本語とカタカナとひらがなとlatinを使用することができます。やった！");
 				}
 			#endif
@@ -105,9 +105,9 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 				//--- Showcase using multiple strings that includes normal text and icons, merged together in 1 utf8 string constant ---
 				ImGui::TextUnformatted("I " ICON_KI_HEART " icons in my text.");
 				{
-					NetImguiHelper::ScopedFont iconFont(FNetImguiModule::eFont::kIcons64);
+					NetImguiScopedFont iconFont(FNetImguiModule::eFont::kIcons64);
 					const char* zAnimation[]={ICON_KI_DPAD, ICON_KI_DPAD_TOP, ICON_KI_DPAD_RIGHT, ICON_KI_DPAD_BOTTOM, ICON_KI_DPAD_LEFT };
-					ImGui::Text( ICON_KI_GAMEPAD " %s "  ICON_KI_BUTTON_START " " ICON_KI_BUTTON_SELECT " " ICON_KI_BUTTON_A " " ICON_KI_BUTTON_B , zAnimation[iconAnimFrame%UE_ARRAY_COUNT(zAnimation)]);
+					ImGui::Text( ICON_KI_GAMEPAD " %s " ICON_KI_BUTTON_SELECT " " ICON_KI_BUTTON_START " " ICON_KI_BUTTON_A " " ICON_KI_BUTTON_B , zAnimation[iconAnimFrame%UE_ARRAY_COUNT(zAnimation)]);
 				}
 			#endif
 			
@@ -119,7 +119,7 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 				//--- Showcase using a utf8 string with icons inserted in it as a regular printf string constant ---
 				ImGui::Text(u8"I %s icons in my text.", ICON_FA_HEART);
 				{
-					NetImguiHelper::ScopedFont iconFont(FNetImguiModule::eFont::kIcons64);
+					NetImguiScopedFont iconFont(FNetImguiModule::eFont::kIcons64);
 					const char* zAnimation[]={ICON_FA_BATTERY_EMPTY, ICON_FA_BATTERY_QUARTER, ICON_FA_BATTERY_HALF, ICON_FA_BATTERY_THREE_QUARTERS, ICON_FA_BATTERY_FULL };
 					ImGui::Text(ICON_FA_SMILE " " ICON_FA_EXPAND_ARROWS_ALT " " ICON_FA_COGS " " ICON_FA_ARROW_ALT_CIRCLE_LEFT " " ICON_FA_ARROW_ALT_CIRCLE_RIGHT " %s", zAnimation[iconAnimFrame%UE_ARRAY_COUNT(zAnimation)]);
 				}
@@ -150,7 +150,7 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 				{
 					// Table header, with a specific font assigned
 					{
-						NetImguiHelper::ScopedFont headerFont(FNetImguiModule::eFont::kCousineFixed20);
+						NetImguiScopedFont headerFont(FNetImguiModule::eFont::kCousineFixed20);
 						ImVec4 tableBgColor = ImGui::GetStyleColorVec4(ImGuiCol_TableHeaderBg);
 						tableBgColor.w = 1.f;
 						ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, tableBgColor);
@@ -248,9 +248,9 @@ void ANetImguiDemoActor::Tick(float DeltaTime)
 	// expecting it this frame.
 	// 
 	// Note:	This Dear Imgui drawing doesn't have to occurs on a Tick method, the only 
-	//			requirement is that it is on the gamethread and 'NetImguiHelper::IsDrawing()'
+	//			requirement is that it is on the gamethread and 'NetImguiHelper::Get().IsDrawing()'
 	//			is tested before drawing
-    if( NetImguiHelper::IsDrawing() ) 
+    if( FNetImguiModule::Get().IsDrawing() )
     {
 		DrawImgui_OncePerActor();
 	}

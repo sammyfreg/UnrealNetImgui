@@ -11,6 +11,7 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 #include <Interfaces/IPluginManager.h>
 #include "Misc/App.h"
 #include "Misc/CoreDelegates.h"
+#include "HAL/IConsoleManager.h"
 #include "ThirdParty/NetImgui/NetImgui_Api.h"
 
 #if NETIMGUI_FREETYPE_ENABLED
@@ -47,9 +48,7 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 //=================================================================================================
 // Statics variables
 //=================================================================================================
-FSimpleMulticastDelegate	FNetImguiModule::OnDrawImgui;
-FNetImguiModule*			FNetImguiModule::spLoadedModule = nullptr;
-FNetImguiModule::eFont		FNetImguiModule::sDefaultFont	= FNetImguiModule::eFont::kCousineFixed16;
+FSimpleMulticastDelegate FNetImguiModule::OnDrawImgui;
 
 #include "ImguiUnrealCommand.h"
 #if IMGUI_UNREAL_COMMAND_ENABLED
@@ -67,30 +66,30 @@ static UECommandImgui::CommandContext* spUECommandContext = nullptr;
 // 
 //-------------------------------------------------------------------------------------------------
 // COMMANDLINE EXAMPLES
-// "-netimguiserver localhost"		Try connecting to NetImguiServer at 'localhost : 8888'
-// "-netimguiserver 192.168.1.2"	Try connecting to NetImguiServer at '192.168.1.2 : 8888'
-// "-netimguiserver 192.168.1.2:60"	Try connecting to NetImguiServer at '192.168.1.2 : 60'
+// "-NetImguiConnect"					Try connecting to NetImguiServer at 'localhost : (default port)'
+// "-NetImguiConnect localhost"			Try connecting to NetImguiServer at 'localhost : (default port)'
+// "-NetImguiConnect 192.168.1.2"		Try connecting to NetImguiServer at '192.168.1.2 : (default port)'
+// "-NetImguiConnect 192.168.1.2:60"	Try connecting to NetImguiServer at '192.168.1.2 : 60'
 //=================================================================================================
-void TryConnectingToServer(const FString& sessionName)
-{	
-	FString hostname;
-	if (FParse::Value(FCommandLine::Get(), TEXT("netimguiserver"), hostname))
+void TryConnectingToServer(const FString& HostnameAndPort)
+{
+	FString sessionName = FString::Format(TEXT("{0}-{1}"), { FApp::GetProjectName(), FPlatformProcess::ComputerName() });
+	FString hostName = "localhost";
+	int32_t hostPort = NETIMGUI_CONNECTPORT;
+
+	if (!HostnameAndPort.IsEmpty()) 
 	{
-		int32_t customPort = NETIMGUI_CONNECTPORT;
-		if (hostname.IsEmpty()) {
-			hostname = "localhost";
+		int pos		= HostnameAndPort.Find(TEXT(":"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+		hostName	= HostnameAndPort;
+		if( pos > 0 ){
+			FString portNumber = HostnameAndPort.Right(HostnameAndPort.Len()-pos-1);
+			hostName.LeftInline(pos);
+			hostPort = FCString::Atoi(*portNumber);
+			hostPort = (hostPort == 0) ? NETIMGUI_CONNECTPORT : hostPort;	// Restore Port Number if integer conversion failed
 		}
-		else {
-			int pos = hostname.Find(TEXT(":"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-			if( pos > 0 ){
-				FString portNumber = hostname.Right(hostname.Len()-pos-1);
-				hostname.LeftInline(pos);
-				customPort = FCString::Atoi(portNumber.GetCharArray().GetData());
-				customPort = (customPort == 0) ? NETIMGUI_CONNECTPORT : customPort;	// Restore Port Number if integer conversion failed
-			}
-		}
-		NetImgui::ConnectToApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), TCHAR_TO_ANSI(hostname.GetCharArray().GetData()), customPort);
 	}
+	NetImgui::ConnectToApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), TCHAR_TO_ANSI(*hostName), hostPort);
+	
 }
 
 //=================================================================================================
@@ -108,20 +107,21 @@ void TryConnectingToServer(const FString& sessionName)
 //-------------------------------------------------------------------------------------------------
 // COMMANDLINE EXAMPLES
 // (empty)					Game will waits for connection on Default Port
-// "-netimguiport 10000"	Game will waits for connection on Port '10000'
+// "-NetImguiListen"		Game will waits for connection on Default Port
+// "-NetImguiListen 10000"	Game will waits for connection on Port '10000'
 //=================================================================================================
-void TryListeningForServer(const FString& sessionName)
+void TryListeningForServer(const FString& ListeningPort)
 {
 	if( !NetImgui::IsConnectionPending() && !NetImgui::IsConnected() )
 	{
-		uint32_t customPort = 0;
-		if ( !FParse::Value(FCommandLine::Get(), TEXT("netimguiport"), customPort) )
-		{
-			customPort =	IsRunningDedicatedServer()	? NETIMGUI_LISTENPORT_DEDICATED_SERVER :
-							FApp::IsGame()				? NETIMGUI_LISTENPORT_GAME :
-														  NETIMGUI_LISTENPORT_EDITOR;
+		FString sessionName = FString::Format(TEXT("{0}-{1}"), { FApp::GetProjectName(), FPlatformProcess::ComputerName() });
+		uint32_t listenPort	= FCString::Atoi(*ListeningPort);
+		if( listenPort == 0 ){
+			listenPort		=	IsRunningDedicatedServer()	? NETIMGUI_LISTENPORT_DEDICATED_SERVER :
+								FApp::IsGame()				? NETIMGUI_LISTENPORT_GAME 
+															: NETIMGUI_LISTENPORT_EDITOR;
 		}
-		NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), customPort);
+		NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), listenPort);
 	}
 }
 
@@ -174,6 +174,42 @@ void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_
 #endif
 	}
 }
+
+static void CommandConnect(const TArray<FString>& Args)
+{
+	TryConnectingToServer(Args.Num() > 0 ? Args[0] : "");
+}
+
+static void CommandListen(const TArray<FString>& Args)
+{
+	TryListeningForServer(Args.Num() > 0 ? Args[0] : "");
+}
+
+static void CommandDisconnect(const TArray<FString>& Args)
+{
+	NetImgui::Disconnect();
+}
+
+static FAutoConsoleCommand GNetImguiConnectCmd
+(
+	TEXT("NetImguiConnect"),
+	TEXT("Try connecting to the NetImgui Remoter server.\nNetImguiConnect [hostname/ip]:[Port]\n(Connect to localhost by default)"),
+	FConsoleCommandWithArgsDelegate::CreateStatic(CommandConnect)
+);
+
+static FAutoConsoleCommand GNetImguiListenCmd
+(
+	TEXT("NetImguiListen"),
+	TEXT("Start listening for a connection from the NetImgui Remote Server.\nNetImguiListen [Port]\n(Use default port when not specified)"),
+	FConsoleCommandWithArgsDelegate::CreateStatic(CommandListen)
+);
+
+static FAutoConsoleCommand GNetImguiDisconnectCmd
+(
+	TEXT("NetImguiDisconnect"),
+	TEXT("Stop any connection with the NetImgui Server and also stop listening for one."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(CommandDisconnect)
+);
 
 //=================================================================================================
 // Update
@@ -256,7 +292,6 @@ void FNetImguiModule::SetDefaultFont(eFont font)
 	check(font < eFont::_Count);
 	if( ImGui::GetIO().Fonts->Fonts[static_cast<int>(font)] )
 	{
-		sDefaultFont				= font; // Save default font to rstore if if module reloaded
 		ImFont* pFont				= font < eFont::_Count ? ImGui::GetIO().Fonts->Fonts[static_cast<int>(font)] : nullptr;
 		ImGui::GetIO().FontDefault	= pFont ? pFont : ImGui::GetIO().FontDefault;
 	}
@@ -285,11 +320,11 @@ void FNetImguiModule::PopFont()
 }
 
 //=================================================================================================
-// IsDrawing
+// isDrawing
 //-------------------------------------------------------------------------------------------------
 // 
 //=================================================================================================
-bool FNetImguiModule::IsDrawing() const
+bool FNetImguiModule::isDrawing() const
 {
 	return NetImgui::IsDrawing();
 }
@@ -340,20 +375,18 @@ void FNetImguiModule::StartupModule()
 	AddFontGroup(TEXT("Droid Sans"),		20.f, Droid_Sans_compressed_data,		Droid_Sans_compressed_size,			true);
 	AddFontGroup(TEXT("Proggy Tiny"),		10.f, Proggy_Tiny_compressed_data,		Proggy_Tiny_compressed_size,		false);
 	AddFontGroup(TEXT("Roboto Medium"),		16.f, Roboto_Medium_compressed_data,	Roboto_Medium_compressed_size,		true);
-
 	AddFontGroup(TEXT("Icons"),				32.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
 	AddFontGroup(TEXT("Icons"),				64.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
-
 #if NETIMGUI_FONT_JAPANESE
 	AddFontGroup(TEXT("日本語"),				32.f, IPAexMincho_compressed_data,		IPAexMincho_compressed_size,		true, false, io.Fonts->GetGlyphRangesJapanese());
 #endif
-	// ... add extra fonts here (and add extra entry in 'FNetImguiModule::eFont' enum)
+	// ... add extra fonts here (and add extra matching entries in 'FNetImguiModule::eFont' enum)
 	
 
 	//---------------------------------------------------------------------------------------------
 	// 1. Build the Font, 
 	// 2. Send result texture data to NetImgui remote server
-	// 3. Clear the local texture data, since it is un-needed (only take memory on remote server)
+	// 3. Clear the local texture data, since it is un-needed (taking memory only on remote server)
 	//---------------------------------------------------------------------------------------------
 	io.Fonts->Build();
 	uint8_t* pPixelData(nullptr);
@@ -361,19 +394,22 @@ void FNetImguiModule::StartupModule()
 	io.Fonts->GetTexDataAsAlpha8(&pPixelData, &width, &height);
 	NetImgui::SendDataTexture(io.Fonts->TexID, pPixelData, static_cast<uint16_t>(width), static_cast<uint16_t>(height), NetImgui::eTexFormat::kTexFmtA8);
 	io.Fonts->ClearTexData();									// Note: Free unneeded client texture memory. Various font size with japanese and icons can increase memory substancially(~64MB)
-	SetDefaultFont(sDefaultFont);
+	SetDefaultFont(FNetImguiModule::eFont::kCousineFixed16);
 
 	//---------------------------------------------------------------------------------------------
 	// Setup connection to wait for netImgui server to reach us
 	// Note:	The default behaviour is for the Game Client to wait for connection from the NetImgui Server
 	//---------------------------------------------------------------------------------------------
-	FString sessionName = FString::Format(TEXT("{0}-{1}"), { FApp::GetProjectName(), FPlatformProcess::ComputerName() });
-	TryConnectingToServer(sessionName);	// Try connecting to NetImguiServer
-	TryListeningForServer(sessionName);	// If failed connecting, start listening for the NetImguiServer
-		
-	mUpdateCallback		= FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
-	spLoadedModule		= this;
-
+	// Commandline request for a connectino to NetImguiServer
+	FString hostNameAndPort, listenPort;
+	if (FParse::Value(FCommandLine::Get(), TEXT("NetImguiConnect"), hostNameAndPort)){
+		TryConnectingToServer(hostNameAndPort);
+	}
+	// If failed connecting, start listening for the NetImguiServer
+	if (FParse::Value(FCommandLine::Get(), TEXT("NetImguiListen"), listenPort) || NETIMGUI_WAITCONNECTION_AUTO_ENABLED ){
+		TryListeningForServer(listenPort);
+	}
+	
 	//---------------------------------------------------------------------------------------------
 	// Initialize the Unreal Console Command Widget
 	//---------------------------------------------------------------------------------------------
@@ -384,6 +420,8 @@ void FNetImguiModule::StartupModule()
 	//UECommandImgui::AddPresetFilters(spUECommandContext, TEXT("ExamplePreset"), {"ai.Debug", "fx.Dump"});
 	//UECommandImgui::AddPresetCommands(spUECommandContext, TEXT("ExamplePreset"), {"Stat Unit", "Stat Fps"});
 #endif
+
+	mUpdateCallback		= FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
 #endif //NETIMGUI_ENABLED
 }
 
@@ -403,10 +441,6 @@ void FNetImguiModule::ShutdownModule()
 
 	ImGui::DestroyContext(mpContext);
 	mpContext = nullptr;
-
-	if (spLoadedModule == this) {
-		spLoadedModule = nullptr;
-	}
 
 #if IMGUI_UNREAL_COMMAND_ENABLED
 	UECommandImgui::Destroy(spUECommandContext);

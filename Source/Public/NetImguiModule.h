@@ -6,18 +6,17 @@
 
 #ifndef NETIMGUI_ENABLED
 	#define NETIMGUI_ENABLED 0
-#endif
 
-#if NETIMGUI_ENABLED
+#elif NETIMGUI_ENABLED
 
 //=================================================================================================
 // Additional Header includes
 //=================================================================================================
 #include "../Private/ThirdParty/DearImgui/imgui.h"
 
-// Note1:	You can toggle which Icon Font are active, in 'NetImgui.Build.cs'
+// Note1:	Active Icon Fonts can be toggled in 'NetImgui.Build.cs'
 // 
-// Note2:	'Icon Game Kenney' can always be active, but only one from 
+// Note2:	'Icon Game Kenney' can always be active. However, only one from 
 //			'Font Awesome' or 'MaterialDesign Icon' can be active at a time
 // 
 // Note3:	For Icon usage example, please take a look at NetImguiDemoActor.cpp
@@ -40,14 +39,6 @@
 	#include "../Private/Fonts/IconFontCppHeader/IconsMaterialDesign.h"
 #endif
 
-// Forward declarations
-class FNetImguiModule;
-namespace NetImguiHelper
-{
-	inline bool IsDrawing();
-	inline FNetImguiModule* Get();
-}
-
 #endif //NETIMGUI_ENABLED
 
 
@@ -56,14 +47,7 @@ namespace NetImguiHelper
 //=================================================================================================
 class FNetImguiModule : public IModuleInterface
 {
-public:
-//Note: Avoiding higher cost of finding the module in a list, by instead relying on
-//		a static pointer to loaded module. Using the pointer should be faster than 
-//		using this Load/Find module.
-// 
-//		Since static functions are not allowed access to static pointer declared in the DLL, 
-//		we are relying on a namespace with inline functions instead (after this class).
-#if 0
+public:	
 	/**
 	 * Singleton-like access to this module's interface. This is just for convenience!
 	 * Beware of calling this during the shutdown phase, though. Your module might have been unloaded already.
@@ -71,9 +55,14 @@ public:
 	 * @return Returns singleton instance, loading the module on demand if needed
 	 */
 	static inline FNetImguiModule&	Get() {
-		return FModuleManager::LoadModuleChecked<FNetImguiModule>("NetImgui");
+		// Avoid lookup by finding the element once per 'Frame/Dll' and storing the pointer
+		static FNetImguiModule* spLoadedModule = nullptr;
+		static uint64 sLastFrame = 0;
+		if( !spLoadedModule || sLastFrame != GFrameCounter ){
+			spLoadedModule = static_cast<FNetImguiModule*>(&FModuleManager::LoadModuleChecked<FNetImguiModule>("NetImgui"));
+		}
+		return *spLoadedModule;
 	}
-#endif
 
 	/**
 	 * Checks to see if this module is loaded and ready. It is only valid to call Get() if IsAvailable() returns true.
@@ -113,7 +102,39 @@ public:
 	virtual void					SetDefaultFont(eFont font);
 	virtual void					PushFont(eFont font);
 	virtual void					PopFont();
+	
+	/**
+	* Tell us if the plugin has a working connection established with NetImgui remote server
+	* 
+	* @return True if the module is connected to a NetImgui remote server
+	*/
 	virtual bool					IsConnected()const;
+
+	/**	
+	* Use this method when trying to draw Dear ImGui content anywhere in your code. It is not
+	* required when drawing is happening inside a 'OnDrawImgui' callback.
+	* 
+	* With 'FrameSkip' enabled, there are frames where we are not waiting on some 
+	* Dear Imgui drawing, and attempting to do so will result in an error.
+	* 
+	* @return True if the module is expecting some Dear ImGui draws this frame
+	*/
+	inline bool						IsDrawing()
+	{
+		if ( isDrawing() )
+		{
+			// HotReload note: When a dll is reloaded, original dll is still loaded and all 'Dear ImGui' 
+			// functions are still pointing to it when called from outside this dll. Only this module object
+			// is recreated. This means that the game code will call original dll but this module object 
+			// will use reloaded dll ImGui functions. To prevent issue with destroyed context, we are 
+			// making sure that the original dll knows about this module's newly created context here.
+			ImGui::SetCurrentContext(Get().GetContext());
+			return true;
+		}
+		return false;
+	}
+
+	
 	
 	//---------------------------------------------------------------------------------------------
 	// Add your Dear ImGui drawing callbacks to this emitter
@@ -121,81 +142,18 @@ public:
 	//---------------------------------------------------------------------------------------------
 
 protected:	
-	virtual bool					IsDrawing()const;
+	virtual bool					isDrawing()const;
 	void							Update();
 	inline ImGuiContext*			GetContext(){ return mpContext; }
 	FDelegateHandle					mUpdateCallback;
 	struct ImGuiContext*			mpContext = nullptr;
-	
-	// Statics (stays valid between module reload)
-	static FNetImguiModule*			spLoadedModule;
-	static eFont					sDefaultFont;
-
-	// Friend access
-	friend bool						NetImguiHelper::IsDrawing();
-	friend FNetImguiModule*			NetImguiHelper::Get();
 #endif //NETIMGUI_ENABLED
 };
 
 #if NETIMGUI_ENABLED
-
-namespace NetImguiHelper
+struct NetImguiScopedFont
 {
-
-/**
-* Retrieve the active NetImgui module. The pointer is garanteed to be valid while IsDrawing()
-* is true, or inside 'OnDrawImgui' callback.
-*
-* @return The Current loaded and active FNetImguiModule
-*/
-FNetImguiModule* Get()
-{
-	return FNetImguiModule::spLoadedModule;
-}
-
-/**
-* Make sure that the FNetImguiModule is loaded properly, and that NetImgui currently expect
-* some Dear ImGui drawing. With 'FrameSkip' enabled, there are frames where we are not waiting
-* on some Dear Imgui drawing, and attempting to do so will result in an error.
-*
-* Note: Use this method when trying to draw Dear ImGui content anywhere in your code. It is not
-*		required when drawing is happening inside a 'OnDrawImgui' callback.
-* 
-* @return True if the module is loaded expecting some Dear ImGui draws this frame
-*/
-bool IsDrawing()
-{
-	if ( Get() && Get()->IsDrawing() )
-	{
-		// HotReload note: When a dll is reloaded, original dll is still loaded and all 'Dear ImGui' 
-		// functions are still pointing to it when called from outside this dll. Only this module object
-		// is recreated. This means that the game code will call original dll but this module object 
-		// will use reloaded dll ImGui functions. To prevent issue with destroyed context, we are 
-		// making sure that the original dll knows about this module's newly created context here.
-		ImGui::SetCurrentContext(Get()->GetContext());
-		return true;
-	}
-	return false;
-}
-
-/**
-* Tell us if the plugin has a working connection established with NetImgui remote server
-* 
-* @return True if the module is connected to a NetImgui remote server
-*/
-bool IsConnected()
-{
-	return Get() && Get()->IsConnected();
-}
-
-/**
-// Helper class that change the font and automatically restore it when object is out of scope
-*/
-struct ScopedFont
-{
-	inline ScopedFont(FNetImguiModule::eFont font){ Get()->PushFont(font); }
-	inline ~ScopedFont(){ Get()->PopFont(); }
+	inline NetImguiScopedFont(FNetImguiModule::eFont font){ FNetImguiModule::Get().PushFont(font); }
+	inline ~NetImguiScopedFont(){ FNetImguiModule::Get().PopFont(); }
 };
-
-}
 #endif
