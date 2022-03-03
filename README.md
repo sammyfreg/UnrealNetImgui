@@ -1,25 +1,42 @@
 <p align="center" style="font-size:30px"><b>Unreal NetImgui</b></p>
 <br>
-<p align="center">
+<p align="center" style="text-align:center;">
 <img src="https://avatars3.githubusercontent.com/u/6615685?s=200&v=4" width=128 height=128>
-+
+<font size="8"> + Dear ImGui + </font>
 <img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/netImguiLogo.png" width=128 height=128>
 </p>
 
 # Summary
 ### [Unreal Engine 4's](https://github.com/EpicGames) support of [NetImgui](https://github.com/sammyfreg/netImgui "NetImgui")
 
-**UnrealNetImgui** is a plugin adding a remote debug GUI interface support to the **Unreal Engine**, using the [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui") library paired with the [**NetImgui**](https://github.com/sammyfreg/netImgui). It allows **UE4** users to remotely connect to their game and display some custom GUI on the dedicated **NetImgui server** application. The game can be running on a different computer or even a different platform such as a gaming console, cellpone, etc...
+**UnrealNetImgui** is a plugin adding remote debug GUI interface to **Unreal Engine**, using the [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui") paired with [**NetImgui**](https://github.com/sammyfreg/netImgui). Allows **UE4** users to remotely display and control some custom GUI on the dedicated **NetImgui server** application. This is really convenient in the situation of your game beeing run on hardware with limited inputs/display such as a gaming console and smartphones. Also useful to have access to a debug menu without cluttering your game screen.
 
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealNetImgui.gif)
 
-> **Note 1:** Allows a very simple use of **Dear ImGui** in **Unreal Engine 4**. To support more complex scenario with GUI content displayed locally on the game screen, please take a look at the excellent [**UnrealImGui**](https://github.com/segross/UnrealImGui/tree/net_imgui) plugin. It also has NetImgui support integrated in the **net_imgui branch**.
+> **Note 1:** Allows a simple use of **Dear ImGui** in **Unreal Engine 4**. To support more complex scenario with GUI content displayed locally on the game screen, please take a look at the excellent [**UnrealImGui**](https://github.com/segross/UnrealImGui/tree/net_imgui) plugin. It also has NetImgui support integrated in the **net_imgui branch**.
 
-> **Note 2:** This is a useful plugin when **Dear ImGui** is not already supported in your UE4 engine codebase. Otherwise, it is possible to ignore this plugin and directly add [**NetImgui's**](https://github.com/sammyfreg/netImgui "NetImgui") client code alongside your **Dear ImGui's** code, with minimal integration time required.
+> **Note 2:** This is a useful plugin when **Dear ImGui** is not already supported in your UE4 engine codebase. Otherwise, it is possible to ignore this plugin and directly add [**NetImgui's**](https://github.com/sammyfreg/netImgui "NetImgui") client code alongside your **Dear ImGui's** code, with minimal integration time required. You can refer to this plugin for implementation details.
 
 # Fonts and Icons
 The plugin comes packaged with various latin fonts, a Japanese Mincho font, [Kenney's Gaming Icons](https://kenney.nl/assets/game-icons "gaming icons") and [Font Awesome](https://fontawesome.com "Font Awesome") (the free subset) for a nice selection of useful icons. The screenshot above shows a small subset of available icons. Mixing latin text, kanjis and icons is kept straightforward using utf8 strings.
 
+# Connection to NetImgui Server
+There are mutliple ways of connecting your game to the **NetImguiServer**.
+
+**Default :**
+- Launch your Editor or Game and if this is on your local PC, a connection should be automatically be established.
+- For a game running on remote hardware, you will need to add the connection information in the NetImgui Server's clients list.
+
+![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/NetImguiServer_AddClient.gif)
+
+**Optional :**
+(works as launch command line option and Unreal Commands)
+**Command Name | Parameter | Description**
+--- | --- | ---
+**NetImguiConnect** | HostName/IP:[Port]  | Try reaching the NetImgui Server Application directly.
+**NetImguiListen** | [Port] | Start waiting for a connection from the NetImgui Server application (if not already connected or waiting).
+**NetImguiDisconnect** | None | Disconnect from the NetImgui Server and stop waiting for a connection.
+*Note :* The Port parameter is optional, it will use default values unless specified.
 # Unreal Commands
 Integrated in the plugin, is the ***Imgui Unreal Commands*** functionalities. Allows user to quickly browse and execute the various Unreal Commands that are already available in the Console, but with a nicer interface. 
 
