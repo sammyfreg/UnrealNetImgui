@@ -121,6 +121,7 @@ public:
 	*/
 	inline bool						IsDrawing()
 	{
+		checkSlow(IsInGameThread());
 		if ( isDrawing() )
 		{
 			// HotReload note: When a dll is reloaded, original dll is still loaded and all 'Dear ImGui' 
@@ -128,23 +129,21 @@ public:
 			// is recreated. This means that the game code will call original dll but this module object 
 			// will use reloaded dll ImGui functions. To prevent issue with destroyed context, we are 
 			// making sure that the original dll knows about this module's newly created context here.
-			ImGui::SetCurrentContext(Get().GetContext());
+			ImGui::SetCurrentContext(Get().mpContext);
 			return true;
 		}
 		return false;
 	}
 
-	
-	
-	//---------------------------------------------------------------------------------------------
-	// Add your Dear ImGui drawing callbacks to this emitter
-	static FSimpleMulticastDelegate OnDrawImgui;
-	//---------------------------------------------------------------------------------------------
+	/**
+	* Add your Dear ImGui drawing callbacks to this emitter
+	** Note: If NetImgui module is reloaded, you will lose your callbacks
+	*/
+	FSimpleMulticastDelegate		OnDrawImgui;
 
 protected:	
 	virtual bool					isDrawing()const;
 	void							Update();
-	inline ImGuiContext*			GetContext(){ return mpContext; }
 	FDelegateHandle					mUpdateCallback;
 	struct ImGuiContext*			mpContext = nullptr;
 #endif //NETIMGUI_ENABLED

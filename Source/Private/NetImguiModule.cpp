@@ -46,10 +46,8 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 #endif
 
 //=================================================================================================
-// Statics variables
+// Misc
 //=================================================================================================
-FSimpleMulticastDelegate FNetImguiModule::OnDrawImgui;
-
 #include "ImguiUnrealCommand.h"
 #if IMGUI_UNREAL_COMMAND_ENABLED
 static UECommandImgui::CommandContext* spUECommandContext = nullptr;

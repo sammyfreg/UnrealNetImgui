@@ -28,21 +28,17 @@ UCLASS()
 class NETIMGUI_API ANetImguiDemoActor : public AActor
 {
 	GENERATED_BODY()
-public:
-	// Sets default values for this actor's properties
-	ANetImguiDemoActor();
-
+	
 #if NETIMGUI_DEMO_ACTOR_ENABLED
-	
-	// Makes sure tick is called even outside of PIE
-	virtual bool ShouldTickIfViewportsOnly() const override{ return true; }
-	
-	// Called every frame
+public:
 	virtual void Tick(float DeltaTime) override;
+	virtual void PostLoad() override { Super::PostLoad(); Initialize(); }			// Called after loading from disk
+	virtual void PostActorCreated() override { PostActorCreated(); Initialize(); }	// Called after editor/game creation
 
-protected:
-	void DrawImgui_OncePerActor();
-	void DrawImgui_OncePerFrame();
+protected:	
+	void Initialize(); // Initialize the 'MethodB_DrawImgui_ActorCallback' callback
+	void MethodB_DrawImgui_ActorCallback();
+	void MethodC_DrawImgui_ActorTick();
 
 #endif //#if NETIMGUI_DEMO_ACTOR_ENABLED
 };

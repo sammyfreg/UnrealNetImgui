@@ -4,8 +4,11 @@
 // Example of using 'NetImgui' with 'Dear ImGui' inside an Actor class. Just drop actors of this 
 // class, in your scene, to see the demo 'Dear ImGui' content appear on the server.
 //
-// The 'Dear ImGui' draws can be done from anywhere in the engine, on the GameThread, 
-// and not limited to 'AActor::Tick()' or an Actor class.
+// The 'Dear ImGui' draws can be done from anywhere in the engine (on the GameThread),
+// and not limited to 'AActor::Tick()' or delegates. This file present some ways of 
+// knowing when to draw content, but user are free to create their own. For example, 
+// a single ImGui Manager where you call your own drawing callbacks after testing 
+// 'FNetImguiModule::Get().IsDrawing()".
 // 
 // For more info on what can be done with 'Dear ImGui' please look at the content of
 // 'ImGui::ShowDemoWindow()' in 'UnrealNetImgui\Source\Private\ThirdParty\DearImgui\imgui_demo.cpp'
@@ -14,7 +17,8 @@
 // 'UnrealNetImgui\Source\Private\ThirdParty\DearImgui\imgui.h' has all the UI methods than can 
 // be used to draw menus.
 // 
-// !!! This class is not needed to use NetImgui, it is only here as an example !!!
+// !!! This class is not needed to use NetImgui, it is only here as an example !!! 
+// You can remove this source file or disable the actor in 'NetImgui.Build.cs'
 //=================================================================================================
 
 #include "NetImguiDemoActor.h"
@@ -25,10 +29,8 @@
 #include <Misc/CoreDelegates.h>
 #include <Runtime/Engine/Public/EngineUtils.h>
 
-static bool sbShowDemoNetImgui	= false;
-
+static bool sbShowDemoNetImgui		= false;
 static const ImVec4 kColorHighlight = ImVec4(0.1f, 0.85f, 0.1f, 1.0f);
-
 
 #if NETIMGUI_FONT_ICON_AWESOME
 #define CLIENTSTRING_NAME	ICON_FA_INFO_CIRCLE " Name"
@@ -46,16 +48,50 @@ static const ImVec4 kColorHighlight = ImVec4(0.1f, 0.85f, 0.1f, 1.0f);
 #define CLIENTSTRING_POS	"Visible"
 #endif
 
+
 //=================================================================================================
-// DrawImgui_OncePerFrame
+// [Method A] DrawImgui FrameCallback
 //-------------------------------------------------------------------------------------------------
-// Note:	We do not need to check NetImguiHelper::IsDrawing() since this callback method is
-//			only invoked by NetImgui client code, when the server wants some new Dear Imgui drawing
+// Add a listener to 'FNetImguiModule::Get().OnDrawImgui'
+// 
+// Since we cannot guarantee that the NetImgui module is loaded when this global variable is 
+// initialized, we use a delegate to check NetImgui's availability and then add our listener.
 //=================================================================================================
-void ANetImguiDemoActor::DrawImgui_OncePerFrame()
+void MethodA_DrawImgui_FrameCallback();
+
+static FDelegateHandle sDelegateNetImguiFrameCallback = FCoreDelegates::OnBeginFrame.AddLambda([]()
 {
-    
-	
+	if( FNetImguiModule::IsAvailable() )
+	{
+		FCoreDelegates::OnBeginFrame.Remove(sDelegateNetImguiFrameCallback);
+		sDelegateNetImguiFrameCallback = FNetImguiModule::Get().OnDrawImgui.AddStatic(&MethodA_DrawImgui_FrameCallback);
+		
+		//-----------------------------------------------------------------------------------------
+		// [Optional] Remove NetImgui Delegate when this module is unloaded
+		// When a module is HotReloaded, the old module remains in memory alongside the new one.
+		// This insure that only the reloaded module tries to draws.
+		//-----------------------------------------------------------------------------------------
+		static FDelegateHandle sDelegateModuleUnload = FModuleManager::Get().OnModulesChanged().AddLambda([](FName ModuleName, EModuleChangeReason ReasonForChange)
+		{
+			static const FName ModuleFName("YourModuleNameHere"); // SET YOUR MODULE NAME HERE
+			if( ReasonForChange == EModuleChangeReason::ModuleUnloaded && ModuleName == ModuleFName )
+			{
+				FNetImguiModule::Get().OnDrawImgui.Remove(sDelegateNetImguiFrameCallback);
+				FModuleManager::Get().OnModulesChanged().Remove(sDelegateModuleUnload);
+			}
+		});
+	}
+});
+
+//=================================================================================================
+// [Method A] DrawImgui FrameCallback
+//-------------------------------------------------------------------------------------------------
+// Actual Dear Imgui drawing code.
+// 
+// Used to add an entry to the MainMenu bar, and render some demo windows
+//=================================================================================================
+void MethodA_DrawImgui_FrameCallback()
+{
 	//---------------------------------------------------------------------------------------------
 	// Insert Demo entry in MainMenu bar
 	//---------------------------------------------------------------------------------------------
@@ -182,11 +218,15 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 							ImGui::Text("(%.02f, %.02f, %.02f)", pos.X, pos.Y, pos.Z);
 
 							ImGui::TableNextColumn();
+#if WITH_EDITOR
 							bool bVisible = !pActor->IsHiddenEd();
 							if (ImGui::Checkbox("", &bVisible)) {
 								pActor->SetIsTemporarilyHiddenInEditor(!bVisible);
 							}
-
+#else
+							bool bVisible = !pActor->IsHidden();
+							ImGui::Checkbox("", &bVisible);
+#endif
 							ImGui::PopID();
 							sCount++;
 						}
@@ -200,37 +240,72 @@ void ANetImguiDemoActor::DrawImgui_OncePerFrame()
 }
 
 //=================================================================================================
-// DrawImgui_OncePerActor
+// [Method B] Callback added to Actor
 //-------------------------------------------------------------------------------------------------
-// For more info on what can be done with 'Dear ImGui' please look at the content of
-// 'ImGui::ShowDemoWindow()' in 'UnrealNetImgui\Source\Private\ThirdParty\DearImgui\imgui_demo.cpp'
-// and in its repository 'https://github.com/ocornut/imgui'
+// This method is called by a listener added to 'FNetImguiModule::OnDrawImgui' just like
+// [Method A], but on the actor directly. 
 // 
-// 'UnrealNetImgui\Source\Private\ThirdParty\DearImgui\imgui.h' has all the UI methods than can 
-// be used to draw menus.
+// This Dear ImGui drawing demonstrate being able to append to the same window, from multiple
+// actor instances, by using the same Window Name.
 //=================================================================================================
-void ANetImguiDemoActor::DrawImgui_OncePerActor()
+void ANetImguiDemoActor::MethodB_DrawImgui_ActorCallback()
 {
 	if( sbShowDemoNetImgui )
 	{
 		//-----------------------------------------------------------------------------------------
-		// Every 'ANetImguiDemoActor' display the following content
+		// Because the Window name is always the same, each actor will appends
+		// its name in this  windows
 		//-----------------------------------------------------------------------------------------
-		FString windowName = FString::Format(TEXT("DemoActor: {0}"), {GetName()});
 		ImGui::SetNextWindowSize(ImVec2(400.f, 200.f), ImGuiCond_Once);
-		if (ImGui::Begin(TCHAR_TO_UTF8(*windowName)))
-		{
-			ImGui::TextWrapped(u8"One window per 'ANetImguiDemoActor' instance will be displayed. The Dear ImGui content is being drawn inside the actor's tick method, without any callback needed.");
-			ImGui::NewLine();
-				
-			ImGui::TextColored(kColorHighlight, "Name: ");
-			ImGui::SameLine(64.f); ImGui::TextUnformatted(TCHAR_TO_UTF8(*GetName()));
-			
-			FVector pos = GetTransform().GetLocation();
-			ImGui::TextColored(kColorHighlight, "Pos: ");
-			ImGui::SameLine(64.f); ImGui::Text("(%.02f, %.02f, %.02f)", pos.X, pos.Y, pos.Z);
+		if (ImGui::Begin("NetImguiDemoActor Lists")) {
+			// Only first actor will output the following text
+			static uint64_t sLastFrame = 0;
+			if (sLastFrame != GFrameCounter) {
+				sLastFrame = GFrameCounter;
+				ImGui::TextColored(kColorHighlight, "Name of 'ANetImguiDemoActor' actor instances:");
+			}
+
+			// Every instances output their name, appending to the same window
+			ImGui::TextUnformatted(TCHAR_TO_UTF8(*GetName()));
 		}
-		ImGui::End();
+	}
+}
+
+//=================================================================================================
+// [Method C] Direct Dear ImGui drawing
+//-------------------------------------------------------------------------------------------------
+// This method is called normally by the Tick method. Any method on the game thread can draw
+// content, as long as 'FNetImguiModule::Get().IsDrawing()' is tested first, since NetImgui is not 
+// always expecting some new draw frame, when FrameSkip is enabled in the build config
+//=================================================================================================
+void ANetImguiDemoActor::MethodC_DrawImgui_ActorTick()
+{
+	// This test is mandatory when 'bFrameSkip_Enabled' is enabled in 'NetImgui.Build.cs'
+	// since this Tick method is called every frame and we want to avoid drawing content unless
+	// expecting it this frame.
+    if( FNetImguiModule::Get().IsDrawing() )
+	{
+		if( sbShowDemoNetImgui )
+		{
+			//-----------------------------------------------------------------------------------------
+			// Every 'ANetImguiDemoActor' display the following content
+			//-----------------------------------------------------------------------------------------
+			FString windowName = FString::Format(TEXT("NetImguiDemoActor Tick###{0}"), {reinterpret_cast<size_t>(this)}); // '###+IntegerID' Generates a unique Window ID so each actor have their own window
+			ImGui::SetNextWindowSize(ImVec2(400.f, 200.f), ImGuiCond_Once);
+			if (ImGui::Begin(TCHAR_TO_UTF8(*windowName)))
+			{
+				ImGui::TextWrapped(u8"One window per 'ANetImguiDemoActor' instance will be displayed. The Dear ImGui content is being drawn inside the actor's tick method, without any callback needed.");
+				ImGui::NewLine();
+				
+				ImGui::TextColored(kColorHighlight, "Name: ");
+				ImGui::SameLine(64.f); ImGui::TextUnformatted(TCHAR_TO_UTF8(*GetName()));
+			
+				FVector pos = GetTransform().GetLocation();
+				ImGui::TextColored(kColorHighlight, "Pos: ");
+				ImGui::SameLine(64.f); ImGui::Text("(%.02f, %.02f, %.02f)", pos.X, pos.Y, pos.Z);
+			}
+			ImGui::End();
+		}
 	}
 }
 
@@ -242,42 +317,29 @@ void ANetImguiDemoActor::DrawImgui_OncePerActor()
 void ANetImguiDemoActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
-	// This test is mandatory when 'bFrameSkip_Enabled' is enabled in 'NetImgui.Build.cs'
-	// since this Tick method is called every frame and we want to avoid drawing content unless
-	// expecting it this frame.
-	// 
-	// Note:	This Dear Imgui drawing doesn't have to occurs on a Tick method, the only 
-	//			requirement is that it is on the gamethread and 'NetImguiHelper::Get().IsDrawing()'
-	//			is tested before drawing
-    if( FNetImguiModule::Get().IsDrawing() )
-    {
-		DrawImgui_OncePerActor();
+	MethodC_DrawImgui_ActorTick();
+}
+
+//=================================================================================================
+// PostLoad
+//-------------------------------------------------------------------------------------------------
+// Add a NetImgui callback that will be invoked every frame when needing to draw some new 
+// Dear Imgui content.
+//=================================================================================================
+void ANetImguiDemoActor::Initialize()
+{
+	PrimaryActorTick.bCanEverTick = true;
+
+	// No need to add callbacks to class 'default object'
+	if ( !HasAnyFlags(RF_ArchetypeObject|RF_ClassDefaultObject) )
+	{
+		// Do not add callback to PIE actor, since they are a copy of the editor actor and would 
+		// draw 2x the same UI. You can ignore this condition if you would like to have UI for them.
+		if( GetWorld()->WorldType !=  EWorldType::PIE )
+		{
+			FNetImguiModule::Get().OnDrawImgui.AddUObject(this, &ANetImguiDemoActor::MethodB_DrawImgui_ActorCallback);
+		}
 	}
 }
 
 #endif // #if NETIMGUI_DEMO_ACTOR_ENABLED
-
-//=================================================================================================
-// ANetImguiDemoActor Constructor
-//-------------------------------------------------------------------------------------------------
-// Makes sure the actors are always ticked so each actor can cell 'DrawImgui_OncePerActor()'
-// every frame.
-// Also add a single callback on 'OnBeginFrame' so 'DrawImgui_OncePerFrame()' can be called 
-// once per frame (not per actor).
-//=================================================================================================
-ANetImguiDemoActor::ANetImguiDemoActor()
-{ 
-#if NETIMGUI_DEMO_ACTOR_ENABLED
-	PrimaryActorTick.bCanEverTick = true;
-
-	//---------------------------------------------------------------------------------------------
-	// Add BeginFrame callback only on they Default object.
-	//---------------------------------------------------------------------------------------------
-	// This means it will only be called once per frame (not per instance), even if there are
-	// no ANetImguiDemoActor instance in the scene.
-	if (HasAnyFlags(RF_ClassDefaultObject)) {
-		FNetImguiModule::OnDrawImgui.AddUObject(this, &ANetImguiDemoActor::DrawImgui_OncePerFrame);
-	}
-#endif
-}
