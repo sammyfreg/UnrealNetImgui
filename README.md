@@ -1,8 +1,7 @@
 <p align="center" style="font-size:30px"><b>Unreal NetImgui</b></p>
-<br>
 <p align="center" style="vertical-align:middle">
 <img src="https://avatars3.githubusercontent.com/u/6615685?s=200&v=4" width=128 height=128>
-<font size="6"> + Dear ImGui + </font>
+<img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/DearImGui.png" width=128 height=128>
 <img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/netImguiLogo.png" width=128 height=128>
 </p>
 
