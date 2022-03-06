@@ -39,9 +39,13 @@ Command Name | Parameter | Description
 **NetImguiDisconnect** | None | Disconnect from the NetImgui Server and stop waiting for a connection.
 
 *Note :* The Port parameter is optional, it will use default values unless specified.
+
 *Example :* `UE4Editor.exe -NetImguiListen` Launch Unreal Editor and wait for a connection on default port.
+
 *Example :* `UE4Editor.exe -NetImguiListen 8000` Launch Unreal Editor and wait for a connection on port 8000.
+
 *Example :* `UE4Editor.exe -NetImguiConnect MyPCName` Launch Unreal Editor and try connecting to NetImguiServer running on Windows PC with network name 'MyPCName' on default port.
+
 *Example :* (In Unreal Console) `NetImguiConnect 192.168.1.10:7000` Launch Unreal Editor and try connecting to NetImguiServer running on PC with IP 192.168.1.10 and Port 7000.
 
 # Unreal Commands
