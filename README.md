@@ -19,23 +19,23 @@
 # Fonts and Icons
 The plugin comes packaged with various Latin fonts, a Japanese Mincho font, [Kenney's Gaming Icons](https://kenney.nl/assets/game-icons "gaming icons"), [Font Awesome](https://fontawesome.com "Font Awesome") (the free subset) and [Google Material Designs icons](https://github.com/google/material-design-icons "Google Material Designs icons"), for a nice selection of useful icons. The screenshot above shows a small subset of available icons. Mixing latin text, kanjis and icons is kept straightforward using utf8 strings.
 
-# Connection to NetImgui Server
+# Connecting to the NetImgui Server
 There are mutliple ways of connecting your game to the **NetImguiServer**.
 
-**Default :**
-- Launch your Editor or Game and when on your local PC, a connection should be automatically be established.
-- For games running on remote hardware, you need to add the connection information in the NetImgui Server's clients list.
+### Default
+- Launch your Editor/Game on your local PC, a connection should be automatically be established when NetImguiServer and game are on the same PC.
+- When launching on remote hardware, add connection information in the NetImgui Server's clients list. Then, the connection will also automatically be established.
+- **Note :** The default behaviour is to start waiting on a connection from the NetImguiServer on the default port of the executable type 8889(Game) / 8890(Editor) / 8891(Dedicated Server). If you do not wish this plugin to automatically open a port, you can disable it in `NetImgui.Build.cs` and rely on the NetImgui commands below.
 
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/NetImguiServer_AddClient.gif)
 
-**Optional :**
-
-(works as launch command line option and Unreal Commands)
+ ### Optional
+When launching your game or using the Unreal Console, you can also manually control the connection to the NetImguiServer using these commands:
 
 Command Name | Parameter | Description
 --- | --- | ---
 **NetImguiConnect** | Hostname/IP:[Port]  | Try reaching the NetImgui Server Application directly.
-**NetImguiListen** | [Port] | Start waiting for a connection from the NetImgui Server application (if not already connected or waiting).
+**NetImguiListen** | [Port] | Start waiting for a connection from the NetImgui Server application (if not already connected).
 **NetImguiDisconnect** | None | Disconnect from the NetImgui Server and stop waiting for a connection.
 
 *Note :* The Port parameter is optional, it will use default values unless specified.
@@ -45,7 +45,7 @@ Command Name | Parameter | Description
 *Example :* (In Unreal Console) `NetImguiConnect 192.168.1.10:7000` Launch Unreal Editor and try connecting to NetImguiServer running on PC with IP 192.168.1.10 and Port 7000.
 
 # Unreal Commands
-This plgins comes with ***Imgui Unreal Commands***, adding Unreal Commands browsing and execution functionalities.
+This plugins comes with ***Imgui Unreal Commands***, adding Unreal Commands browsing and execution functionalities.
 
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealCommandsFull.gif)
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealCommands.gif)
