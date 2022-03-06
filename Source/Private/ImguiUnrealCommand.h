@@ -13,9 +13,17 @@
 //			4- Call 'Destroy()' once, when program is closing
 #pragma once
 
+// Default value is 'Active' when nto specified
 #ifndef IMGUI_UNREAL_COMMAND_ENABLED
-#define IMGUI_UNREAL_COMMAND_ENABLED 1 // Default value is 'Active'. Define to 0 to remove 'Dear ImGui Unreal Command' support
+	#define IMGUI_UNREAL_COMMAND_ENABLED 1 
 #endif
+
+// When Dear Imgui is not detected, remove Imgui UnrealCommand support
+#ifndef IMGUI_API
+	#undef IMGUI_UNREAL_COMMAND_ENABLED
+	#define IMGUI_UNREAL_COMMAND_ENABLED 0
+#endif
+
 
 #if IMGUI_UNREAL_COMMAND_ENABLED
 

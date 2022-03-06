@@ -15,21 +15,30 @@
 #include "GameFramework/Actor.h"
 #include "NetImguiDemoActor.generated.h"
 
+#ifndef NETIMGUI_DEMO_ACTOR_ENABLED
+	#define NETIMGUI_DEMO_ACTOR_ENABLED 0
+#endif
+
+#if !defined(NETIMGUI_ENABLED) || !NETIMGUI_ENABLED
+	#undef NETIMGUI_DEMO_ACTOR_ENABLED
+	#define NETIMGUI_DEMO_ACTOR_ENABLED 0
+#endif
+
 UCLASS()
 class NETIMGUI_API ANetImguiDemoActor : public AActor
 {
 	GENERATED_BODY()
-
-public:	
-	// Sets default values for this actor's properties
-	ANetImguiDemoActor(){ PrimaryActorTick.bCanEverTick = NETIMGUI_DEMO_ACTOR_ENABLED; }
-
-#if NETIMGUI_DEMO_ACTOR_ENABLED
-	// Makes sure tick is called even outside of PIE
-	virtual bool ShouldTickIfViewportsOnly() const override{ return true; }
 	
-public:	
-	// Called every frame
+#if NETIMGUI_DEMO_ACTOR_ENABLED
+public:
 	virtual void Tick(float DeltaTime) override;
-#endif //NETIMGUI_DEMO_ACTOR_ENABLED
+	virtual void PostLoad() override { Super::PostLoad(); Initialize(); }			// Called after loading from disk
+	virtual void PostActorCreated() override { PostActorCreated(); Initialize(); }	// Called after editor/game creation
+
+protected:	
+	void Initialize(); // Initialize the 'MethodB_DrawImgui_ActorCallback' callback
+	void MethodB_DrawImgui_ActorCallback();
+	void MethodC_DrawImgui_ActorTick();
+
+#endif //#if NETIMGUI_DEMO_ACTOR_ENABLED
 };

@@ -4,17 +4,15 @@
 //! @Name		: NetImgui
 //=================================================================================================
 //! @author		: Sammy Fatnassi
-//! @date		: 2022/01/31
-//!	@version	: v1.7.5
+//! @date		: 2022/02/23
+//!	@version	: v1.7.6
 //! @Details	: For integration info : https://github.com/sammyfreg/netImgui/wiki
 //=================================================================================================
-#define NETIMGUI_VERSION		"1.7.5"
-#define NETIMGUI_VERSION_NUM	10705
+#define NETIMGUI_VERSION		"1.7.6"
+#define NETIMGUI_VERSION_NUM	10706
 
 
-#ifdef NETIMGUI_IMPLEMENTATION
-	#define NETIMGUI_INTERNAL_INCLUDE
-#endif
+
 
 //-------------------------------------------------------------------------------------------------
 // Deactivate a few warnings to allow Imgui header include
@@ -40,7 +38,14 @@
 // 'imgui.h' : always
 // 'imgui_internal.h' when 'NETIMGUI_INTERNAL_INCLUDE' is defined
 //=================================================================================================
-#include "NetImgui_Config.h"
+#ifdef NETIMGUI_IMPLEMENTATION
+	#define NETIMGUI_INTERNAL_INCLUDE
+	#include "NetImgui_Config.h"
+	#undef NETIMGUI_INTERNAL_INCLUDE
+#else
+	#include "NetImgui_Config.h"
+#endif
+
 
 //-------------------------------------------------------------------------------------------------
 // If 'NETIMGUI_ENABLED' hasn't been defined yet (in project settings or NetImgui_Config.h') 
@@ -223,7 +228,6 @@ NETIMGUI_API	uint32_t			GetTexture_BytePerImage	(eTexFormat eFormat, uint32_t pi
 	#include "Private/NetImgui_NetworkPosix.cpp"
 	#include "Private/NetImgui_NetworkUE4.cpp"
 	#include "Private/NetImgui_NetworkWin32.cpp"
-	#undef NETIMGUI_INTERNAL_INCLUDE
 #endif
 
 #endif // NETIMGUI_ENABLED
