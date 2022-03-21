@@ -76,6 +76,13 @@ This plugins comes with ***Imgui Unreal Commands***, adding Unreal Commands brow
   - The define `NETIMGUI_ENABLED` allows to selectively disable code if planning to remove **NetImgui** on certain game configurations (shipping, ...)
  1. The Unreal build file `NetImgui.Build.cs` contains many option to toggle features/fonts.
  1. When using this plugin in the Editor, unselect the option `Edit->Editor Preferences->General->Performances->Use Less CPU when in Background`, otherwise framerate will be low when focus is on the NetImguiServer window instead of the Unreal Editor.
+ 1. It is possible to have some compilation linking errors concerning `Freetype`. The **Freetype** library comes with UnrealEngine and might have some issues on your current engine version, or target platform. Fortunatly, **UnrealNetImgui** use of it is optional (relies on it to improve the font quality) and can be safely disabled.
+ 
+**in UnrealNetImgui\Source\NetImgui.Build.cs : 85**
+```
+    // bool bFreeType_Enabled = true;
+    bool bFreeType_Enabled = false;
+```
 # Example
 
 Code example of **Dear ImGui** to display a very basic menu from the `Tick()` method of an actor.
