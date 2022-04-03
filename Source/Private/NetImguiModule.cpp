@@ -48,9 +48,9 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 //=================================================================================================
 // Misc
 //=================================================================================================
-#include "ImguiUnrealCommand.h"
+#include "ImUnrealCommand.h"
 #if IMGUI_UNREAL_COMMAND_ENABLED
-static UECommandImgui::CommandContext* spUECommandContext = nullptr;
+static ImUnrealCommand::CommandContext* spImUnrealCommandContext = nullptr;
 #endif
 
 //=================================================================================================
@@ -268,14 +268,14 @@ void FNetImguiModule::Update()
 		#if IMGUI_UNREAL_COMMAND_ENABLED
 			if (ImGui::BeginMainMenuBar()) {
 				if( ImGui::BeginMenu("NetImgui") ){
-					ImGui::MenuItem("Unreal-Commands", nullptr, &UECommandImgui::IsVisible(spUECommandContext) );
+					ImGui::MenuItem("Unreal-Commands", nullptr, &ImUnrealCommand::IsVisible(spImUnrealCommandContext) );
 					ImGui::EndMenu();
 				}
 				ImGui::EndMainMenuBar();
 			}
 
 			// Always try displaying the 'Unreal Command Imgui' Window (handle Window visibility internally)
-			UECommandImgui::Show(spUECommandContext);
+			ImUnrealCommand::Show(spImUnrealCommandContext);
 		#endif
 		}
 	}
@@ -412,7 +412,7 @@ void FNetImguiModule::StartupModule()
 	// Initialize the Unreal Console Command Widget
 	//---------------------------------------------------------------------------------------------
 #if IMGUI_UNREAL_COMMAND_ENABLED
-	spUECommandContext	= UECommandImgui::Create(); // Create a new Imgui Command Window
+	spImUnrealCommandContext = ImUnrealCommand::Create(); // Create a new Imgui Command Window
 	// Commented code demonstrating how to add/modify Presets
 	// Could also modify the list of 'Default Presets' directly (UECommandImgui::sDefaultPresets)
 	//UECommandImgui::AddPresetFilters(spUECommandContext, TEXT("ExamplePreset"), {"ai.Debug", "fx.Dump"});
@@ -441,7 +441,7 @@ void FNetImguiModule::ShutdownModule()
 	mpContext = nullptr;
 
 #if IMGUI_UNREAL_COMMAND_ENABLED
-	UECommandImgui::Destroy(spUECommandContext);
+	ImUnrealCommand::Destroy(spImUnrealCommandContext);
 #endif
 
 #endif //NETIMGUI_ENABLED
