@@ -3,9 +3,6 @@
 #include "NetImguiModule.h"
 #include "CoreMinimal.h"
 
-#define LOCTEXT_NAMESPACE "FNetImguiModule"
-IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
-
 #if NETIMGUI_ENABLED
 
 #include <Interfaces/IPluginManager.h>
@@ -237,9 +234,38 @@ void FNetImguiModule::Update()
 		if (NetImgui::IsDrawingRemote())
 		{
 			//----------------------------------------------------------------------------
-			// Ask all listener to draw their Dear ImGui content
+			// Show a simple information Window
 			//----------------------------------------------------------------------------
-			OnDrawImgui.Broadcast();
+			static bool sbShowHelp = false;
+			if (ImGui::BeginMainMenuBar())
+			{
+				if( ImGui::BeginMenu("NetImgui") ){
+					ImGui::MenuItem("Help", nullptr, &sbShowHelp);
+					ImGui::EndMenu();
+				}
+				ImGui::EndMainMenuBar();
+			}
+			if (sbShowHelp) {
+				static const ImVec4 kColorHighlight = ImVec4(0.1f, 0.85f, 0.1f, 1.0f);
+				ImGui::SetNextWindowSize(ImVec2(600,400), ImGuiCond_FirstUseEver);
+				if (ImGui::Begin("NetImgui: Help", &sbShowHelp)) {
+					ImGui::TextColored(kColorHighlight, "Version :"); ImGui::SameLine();
+					ImGui::TextUnformatted("NetImgui : " NETIMGUI_VERSION);
+					
+					ImGui::NewLine();
+					ImGui::TextColored(kColorHighlight, "Low 'Dear ImGui' menus responsiveness when used with editor");
+					ImGui::TextWrapped("Cause   : UE editor option to 'lower CPU cost when editor is unfocused' active");
+					ImGui::TextWrapped("Solution: Disable this option. (Edit->Editor Preferences->General->Performance->Use Less CPU when in background)");
+
+					ImGui::NewLine();
+					ImGui::TextColored(kColorHighlight, "Usage example");
+					ImGui::TextWrapped(	"Samples for using Dear ImGui with the NetImgui plugin, can be found in 'UnrealNetImgui/Source/Sample/NetImguiDemoActor.cpp'.  "
+										"The Actor can be dropped in your scene to show a demo window (NetImgui->Demo: DemoActor' to view it).  "
+										"To add the actor : [Quickly add to the project] button(top of viewport, cube with '+' icon) then type 'Net Imgui Demo Actor' to find it.  "
+										"Demo Actor source code is also is also a good demonstration of how to integrate the plugin to your project");
+				}
+				ImGui::End();
+			}
 
 			//----------------------------------------------------------------------------
 			// Display a 'Dear Imgui Demo' menu entry in MainMenu bar, and the 
@@ -277,6 +303,11 @@ void FNetImguiModule::Update()
 			// Always try displaying the 'Unreal Command Imgui' Window (handle Window visibility internally)
 			ImUnrealCommand::Show(spImUnrealCommandContext);
 		#endif
+
+			//----------------------------------------------------------------------------
+			// Ask all listener to draw their Dear ImGui content
+			//----------------------------------------------------------------------------
+			OnDrawImgui.Broadcast();
 		}
 	}
 }
@@ -447,4 +478,6 @@ void FNetImguiModule::ShutdownModule()
 #endif //NETIMGUI_ENABLED
 }
 
+#define LOCTEXT_NAMESPACE "FNetImguiModule"
+IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 #undef LOCTEXT_NAMESPACE
