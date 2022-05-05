@@ -6,15 +6,15 @@
 </p>
 
 # Summary
-### Support of [NetImgui](https://github.com/sammyfreg/netImgui "NetImgui") in [Unreal Engine 4](https://github.com/EpicGames) 
+### Support of [NetImgui](https://github.com/sammyfreg/netImgui "NetImgui") in [Unreal Engine 4 & 5](https://github.com/EpicGames) 
 
-**UnrealNetImgui** is a plugin adding remote debug GUI interface to **Unreal Engine** using the [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui") paired with [**NetImgui**](https://github.com/sammyfreg/netImgui). Allows **UE4** users to remotely display and control some custom GUI on the dedicated **NetImgui Server** application. This proves convenient with games running on limited inputs/display hardware, such as gaming consoles and smartphones. Also reduces the game screen clutter of debug informations contents.
+**UnrealNetImgui** is a plugin adding remote debug GUI interface to **Unreal Engine** using the [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui") paired with [**NetImgui**](https://github.com/sammyfreg/netImgui). Allows **UE** users to remotely display and control some custom GUI on the dedicated **NetImgui Server** application. This proves convenient with games running on limited inputs/display hardware, such as gaming consoles and smartphones. Also reduces the game screen clutter of debug informations contents.
 
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealNetImgui.gif)
 
-> **Note 1:** Allows a simple use of **Dear ImGui** in **Unreal Engine 4**. To support more complex scenario with GUI content displayed locally on the game screen, please take a look at the excellent [**UnrealImGui**](https://github.com/segross/UnrealImGui/tree/net_imgui) plugin. It also has NetImgui support integrated in the **net_imgui branch**.
+> **Note 1:** Allows a simple use of **Dear ImGui** in **Unreal Engine 4 & 5**. To support more complex scenario with GUI content displayed locally on the game screen, please take a look at the excellent [**UnrealImGui**](https://github.com/segross/UnrealImGui/tree/net_imgui) plugin. It also has NetImgui support integrated in the **net_imgui branch**.
 
-> **Note 2:** Useful library when **Dear ImGui** is not already supported in your UE4 engine codebase. Otherwise, ignore this plugin and add [**NetImgui's**](https://github.com/sammyfreg/netImgui "NetImgui") client code alongside your **Dear ImGui's** code. It requires minimal integration time and you can refer to this plugin for implementation details.
+> **Note 2:** Useful library when **Dear ImGui** is not already supported in your UE engine codebase. Otherwise, ignore this plugin and add [**NetImgui's**](https://github.com/sammyfreg/netImgui "NetImgui") client code alongside your **Dear ImGui's** code. It requires minimal integration time and you can refer to this plugin for implementation details.
 
 # Fonts and Icons
 The plugin comes packaged with various Latin fonts, a Japanese Mincho font, [Kenney's Gaming Icons](https://kenney.nl/assets/game-icons "gaming icons"), [Font Awesome](https://fontawesome.com "Font Awesome") (the free subset) and [Google Material Designs icons](https://github.com/google/material-design-icons "Google Material Designs icons"), for a nice selection of useful icons. The screenshot above shows a small subset of available icons. Mixing latin text, kanjis and icons is kept straightforward using utf8 strings.
@@ -40,11 +40,11 @@ Command Name | Parameter | Description
 
 *Note :* The Port parameter is optional, it will use default values unless specified.
 
-*Example :* `UE4Editor.exe -NetImguiListen` Launch Unreal Editor and wait for a connection on default port.
+*Example :* `UEEditor.exe -NetImguiListen` Launch Unreal Editor and wait for a connection on default port.
 
-*Example :* `UE4Editor.exe -NetImguiListen 8000` Launch Unreal Editor and wait for a connection on port 8000.
+*Example :* `UEEditor.exe -NetImguiListen 8000` Launch Unreal Editor and wait for a connection on port 8000.
 
-*Example :* `UE4Editor.exe -NetImguiConnect MyPCName` Launch Unreal Editor and try connecting to NetImguiServer running on Windows PC with network name 'MyPCName' on default port.
+*Example :* `UEEditor.exe -NetImguiConnect MyPCName` Launch Unreal Editor and try connecting to NetImguiServer running on Windows PC with network name 'MyPCName' on default port.
 
 *Example :* (In Unreal Console) `NetImguiConnect 192.168.1.10:7000` Launch Unreal Editor and try connecting to NetImguiServer running on PC with IP 192.168.1.10 and Port 7000.
 
@@ -143,6 +143,9 @@ void AMyImGuiActor::Tick(float DeltaTime)
 #endif
 }
 ```
+# Release notes 1.9
+ - Tested with **Unreal Engine 5**
+ - Updated **Font Awesome** icons (v5 -> v6)
 # Release notes 1.8
  - Added Japanese Font
  - Added Kenney's gaming icons
@@ -151,6 +154,7 @@ void AMyImGuiActor::Tick(float DeltaTime)
  - Added FreeType font rendering support (for sharper text)
  - Added the delegate `FNetImguiModule::OnDrawImgui` to listen to for drawing
  - Cache module lookup(every frame) when calling `FNetImguiModule::Get()` instead of more expensive search
+ - Upgraded to **Dear Imgui 1.86.5** *(docking branch)*
  - Upgraded to [**NetImgui 1.7.5**](https://github.com/sammyfreg/netImgui/releases/tag/v1.7.5) *(more details in link)*
  
 # Release notes (older)
