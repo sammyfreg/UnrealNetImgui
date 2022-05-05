@@ -93,16 +93,16 @@ public class NetImgui : ModuleRules
 		bool bDemoActor_Enabled = true;
 
 		// Will load Japanese font 
-		// Note: If not using Japanese, set this to false, to save on memory (avoids 6MB font data table source include)
+		// Note: If not using Japanese, set this to false, saves on memory (avoids 6MB font data table source include)
 		bool bFontJapanese_Enabled = true;
 
 		// Will load the 'Kenney Game Icons' font
 		// For list available icons, see: https://kenney.nl/assets/game-icons and https://kenney.nl/assets/game-icons-expansion
 		bool bFontIconGameKenney_Enabled = true;
 
-		// Will load the 'FontAwesome 5' font ('free' subset)
+		// Will load the 'FontAwesome 6' font ('free' subset)
 		// Contains various icons for every use, using only the 
-		// For list of available icons, see: https://fontawesome.com/v5/search?m=free (Regular/Solid)
+		// For list of available icons, see: https://fontawesome.com/v6/search?m=free (Regular/Solid/Brands)
 		bool bFontIconAwesome_Enabled = true;
 
 		// Will load 'Google Material Designs icons' font
@@ -113,7 +113,7 @@ public class NetImgui : ModuleRules
 		// Com Port used by this client, to try connecting to the remote NetImgui Server (8888 by default)
 		// Used when engine is launched with command line parameter 'netimguiserver' to request a connection
 		// attempt, instead of waiting for server to reach the game
-		string kRemoteConnectPort	= "(NetImgui::kDefaultServerPort)";
+		string kRemoteConnectPort = "(NetImgui::kDefaultServerPort)";
 
 		// Com Port used by Game exe to wait for a connection from netImgui Server (8889 by default)
 		// NetImgui Server will try to find running game client on this port and connect to them
@@ -122,11 +122,11 @@ public class NetImgui : ModuleRules
 		//			you will need to add their IP in the Server Client list.
 		//			Alternatively, you can modify the connection code in 'FNetImguiModule::StartupModule()'
 		//			to let the client connect directly to NetImGui server using 'NetImgui::ConnectToApp(ServerIP)'
-		string kGameListenPort		= "(NetImgui::kDefaultClientPort)";
+		string kGameListenPort = "(NetImgui::kDefaultClientPort)";
 
 		// Com Port used by Editor exe to wait for a connection from netImgui Server (8890 by default)
 		// NetImgui Server will try to find running editor client on this port and connect to them
-		string kEditorListenPort	= "(NetImgui::kDefaultClientPort+1)";
+		string kEditorListenPort = "(NetImgui::kDefaultClientPort+1)";
 
 		// Com Port used by Dedicated Server exe to wait for a connection from netImgui Server (8891 by default)
 		// NetImgui Server will try to find running dedicaed server client on this port and connect to them

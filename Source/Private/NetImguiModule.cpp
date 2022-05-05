@@ -29,9 +29,10 @@
 	#include "Fonts/FontKenney/KenneyIcon.cpp"
 #endif
 
-#if NETIMGUI_FONT_ICON_AWESOME
-	#include "Fonts/FontAwesome5/FontAwesome_Regular.cpp"
-	#include "Fonts/FontAwesome5/FontAwesome_Solid.cpp"
+#if NETIMGUI_FONT_ICON_AWESOME	
+	#include "Fonts/FontAwesome6/fa-solid-900.cpp"
+	#include "Fonts/FontAwesome6/fa-regular-400.cpp"
+	#include "Fonts/FontAwesome6/fa-brands-400.cpp"
 #endif
 
 #if NETIMGUI_FONT_ICON_MATERIALDESIGN
@@ -140,7 +141,7 @@ void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_
 	ImFontAtlas* pFontAtlas = ImGui::GetIO().Fonts;
 	name += FString::Printf(TEXT(" (%ipx)"), static_cast<int>(pxSize));
 	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), TCHAR_TO_UTF8(name.GetCharArray().GetData()));
-	pFontAtlas->AddFontFromMemoryCompressedTTF(pFontData,	FontDataSize, pxSize, &Config, pGlyphRange);
+	pFontAtlas->AddFontFromMemoryCompressedTTF(pFontData, FontDataSize, pxSize, &Config, pGlyphRange);
 	
 	Config.MergeMode = true;
 #if NETIMGUI_FONT_JAPANESE
@@ -160,8 +161,10 @@ void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_
 #endif
 #if NETIMGUI_FONT_ICON_AWESOME
 		static const ImWchar iconFontAwesome_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-		pFontAtlas->AddFontFromMemoryCompressedTTF(FontAwesome_Regular_compressed_data, FontAwesome_Regular_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
-		pFontAtlas->AddFontFromMemoryCompressedTTF(FontAwesome_Solid_compressed_data, FontAwesome_Solid_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
+		static const ImWchar iconFontAwesomeBrands_ranges[] = { ICON_MIN_FAB, ICON_MAX_FAB, 0 };
+		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_solid_900_compressed_data, fa_solid_900_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
+		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_regular_400_compressed_data, fa_regular_400_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
+		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_brands_400_compressed_data, fa_brands_400_compressed_size, pxSize, &Config, iconFontAwesomeBrands_ranges);
 #endif
 #if NETIMGUI_FONT_ICON_MATERIALDESIGN
 		static const ImWchar iconMaterialDesign_ranges[] = { ICON_MIN_MD, ICON_MAX_MD, 0 };
@@ -260,12 +263,33 @@ void FNetImguiModule::Update()
 					ImGui::NewLine();
 					ImGui::TextColored(kColorHighlight, "Usage example");
 					ImGui::TextWrapped(	"Samples for using Dear ImGui with the NetImgui plugin, can be found in 'UnrealNetImgui/Source/Sample/NetImguiDemoActor.cpp'.  "
+#if NETIMGUI_DEMO_ACTOR_ENABLED
 										"The Actor can be dropped in your scene to show a demo window (NetImgui->Demo: DemoActor' to view it).  "
 										"To add the actor : [Quickly add to the project] button(top of viewport, cube with '+' icon) then type 'Net Imgui Demo Actor' to find it.  "
+#else
+										"This Demo actor isn't enable in the build. To active it, set 'bDemoActor_Enabled' to true in 'NetImgui.Build.cs'"
+#endif
 										"Demo Actor source code is also is also a good demonstration of how to integrate the plugin to your project");
 				}
 				ImGui::End();
 			}
+
+			//----------------------------------------------------------------------------
+			// Display a 'Unreal Console Command' menu entry in MainMenu bar, and the 
+			// 'Unreal Console command' window itself when requested
+			//----------------------------------------------------------------------------
+		#if IMGUI_UNREAL_COMMAND_ENABLED
+			if (ImGui::BeginMainMenuBar()) {
+				if( ImGui::BeginMenu("NetImgui") ){
+					ImGui::MenuItem("Unreal-Commands", nullptr, &ImUnrealCommand::IsVisible(spImUnrealCommandContext) );
+					ImGui::EndMenu();
+				}
+				ImGui::EndMainMenuBar();
+			}
+
+			// Always try displaying the 'Unreal Command Imgui' Window (handle Window visibility internally)
+			ImUnrealCommand::Show(spImUnrealCommandContext);
+		#endif
 
 			//----------------------------------------------------------------------------
 			// Display a 'Dear Imgui Demo' menu entry in MainMenu bar, and the 
@@ -285,23 +309,6 @@ void FNetImguiModule::Update()
 			if( sbShowDemoImgui ){
 				ImGui::ShowDemoWindow(&sbShowDemoImgui);
 			}
-		#endif
-
-			//----------------------------------------------------------------------------
-			// Display a 'Unreal Console Command' menu entry in MainMenu bar, and the 
-			// 'Unreal Console command' window itself when requested
-			//----------------------------------------------------------------------------
-		#if IMGUI_UNREAL_COMMAND_ENABLED
-			if (ImGui::BeginMainMenuBar()) {
-				if( ImGui::BeginMenu("NetImgui") ){
-					ImGui::MenuItem("Unreal-Commands", nullptr, &ImUnrealCommand::IsVisible(spImUnrealCommandContext) );
-					ImGui::EndMenu();
-				}
-				ImGui::EndMainMenuBar();
-			}
-
-			// Always try displaying the 'Unreal Command Imgui' Window (handle Window visibility internally)
-			ImUnrealCommand::Show(spImUnrealCommandContext);
 		#endif
 
 			//----------------------------------------------------------------------------

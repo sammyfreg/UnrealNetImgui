@@ -28,9 +28,10 @@
 #endif
 
 // List of defines to easily use Icons available in 'Font Awesome Icons' (only the 'free' subset is made available)
-// For list of available icons, see: https://fontawesome.com/v5/search?m=free (Regular/Solid)
+// For list of available icons, see: https://fontawesome.com/v6/search?m=free (Regular/Solid/Brands)
 #if NETIMGUI_FONT_ICON_AWESOME
-	#include "../Private/Fonts/IconFontCppHeader/IconsFontAwesome5.h"
+	#include "../Private/Fonts/IconFontCppHeader/IconsFontAwesome6.h"
+	#include "../Private/Fonts/IconFontCppHeader/IconsFontAwesome6Brands.h"
 #endif
 
 // List of defines to easily use Icons available in 'Google's Material Design Icons'
