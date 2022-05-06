@@ -12,7 +12,7 @@
 
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealNetImgui.gif)
 
-> **Note 1:** Allows a simple use of **Dear ImGui** in **Unreal Engine 4 & 5**. To support more complex scenario with GUI content displayed locally on the game screen, please take a look at the excellent [**UnrealImGui**](https://github.com/segross/UnrealImGui/tree/net_imgui) plugin. It also has NetImgui support integrated in the **net_imgui branch**.
+> **Note 1:** Allows use of **Dear ImGui** in **Unreal Engine 4 & 5** in a separate window/PC. To have Dear ImGui GUI content displayed locally (game screen), please take a look at the excellent [**UnrealImGui**](https://github.com/segross/UnrealImGui/tree/net_imgui) plugin (also has NetImgui support in the **net_imgui branch**).
 
 > **Note 2:** Useful library when **Dear ImGui** is not already supported in your UE engine codebase. Otherwise, ignore this plugin and add [**NetImgui's**](https://github.com/sammyfreg/netImgui "NetImgui") client code alongside your **Dear ImGui's** code. It requires minimal integration time and you can refer to this plugin for implementation details.
 
@@ -30,7 +30,7 @@ There are mutliple ways of connecting your game to the **NetImguiServer**.
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/NetImguiServer_AddClient.gif)
 
  ### Optional
-When launching your game or using the Unreal Console, you can also manually control the connection to the NetImguiServer using these commands:
+When launching your game or using the Unreal Console, you can also manually control the connection to the NetImgui Server using these commands:
 
 Command Name | Parameter | Description
 --- | --- | ---
@@ -63,22 +63,28 @@ This plugins comes with ***Imgui Unreal Commands***, adding Unreal Commands brow
   -Follow usage found in `Source\Private\NetImguiModule.cpp` (inside IMGUI_UNREAL_COMMAND_ENABLED defines)
 
 # Integration
- 1. Download and copy the **UnrealNetImgui** folder to **Unreal Engine**'s Plugin directory (`.\Engine\Plugins`)
- 1. Regenerate your project solution to have the new plugin included *(right-click [ProjectName].uproject-> Generate Visual Studio Project Files)*
- 1. In your game project `(ProjectName).Build.cs` file, add the `NetImgui` dependency to `PublicDependencyModuleNames` entries.
- 1. In editor, enable the plugin `2D\NetImgui`.
- 1. Start the `UnrealNetImgui\NetImguiServer\NetImguiServer.exe` application.
-  - **Dear ImGui's** menu content created in your code, will be displayed and controlled in it (after a connection is established).
-  - The client list comes pre-configured with 3 clients configuration (game, editor, server) that will be automatically connected to when detected. For remote PCs, game consoles or others, create a new client configuration with proper address settings.
- 1. You can now invoke **Dear ImGui** drawing functions to generate your GUI every frame.
-  - Any code running on the Game Thread can now invoke make drawing calls (as long as  `NetImguiHelper::IsDrawing()` is true)
-  - You can also add a callback to `FNetImguiModule::OnDrawImgui` to be invoked by **UnrealNetImgui** when some drawing is expected.
-  - The define `NETIMGUI_ENABLED` allows to selectively disable code if planning to remove **NetImgui** on certain game configurations (shipping, ...)
- 1. The Unreal build file `NetImgui.Build.cs` contains many option to toggle features/fonts.
- 1. When using this plugin in the Editor, unselect the option `Edit->Editor Preferences->General->Performances->Use Less CPU when in Background`, otherwise framerate will be low when focus is on the NetImguiServer window instead of the Unreal Editor.
- 1. It is possible to have some compilation linking errors concerning `Freetype`. The **Freetype** library comes with UnrealEngine and might have some issues on your current engine version, or target platform. Fortunatly, **UnrealNetImgui** use of it is optional (relies on it to improve the font quality) and can be safely disabled.
- 
-**in UnrealNetImgui\Source\NetImgui.Build.cs : 85**
+1. Download and copy the **UnrealNetImgui** folder to **Unreal Engine**'s Plugin directory (`.\Engine\Plugins`)
+
+2. Regenerate your project solution to have the new plugin included *(right-click [ProjectName].uproject-> Generate Visual Studio Project Files)*
+
+3. In your game project `(ProjectName).Build.cs` file, add the `NetImgui` dependency to `PublicDependencyModuleNames` entries.
+
+4. In editor, enable the plugin `2D\NetImgui`.
+
+5. Start the `UnrealNetImgui\NetImguiServer\NetImguiServer.exe` application.
+   - **Dear ImGui's** menu content created in your code, will be displayed and controlled in it (after a connection is established).
+   - The client list comes pre-configured with 3 clients configuration (game, editor, server) that will be automatically connected to when detected. For remote PCs, game consoles or others, create a new client configuration with proper address settings.
+
+6. You can now invoke **Dear ImGui** drawing functions to generate your GUI every frame.
+   - Any code running on the Game Thread can now invoke make drawing calls (as long as  `NetImguiHelper::IsDrawing()` is true)
+   - You can also add a callback to `FNetImguiModule::OnDrawImgui` to be invoked by **UnrealNetImgui** when some drawing is expected.
+   - The define `NETIMGUI_ENABLED` allows to selectively disable code if planning to remove **NetImgui** on certain game configurations (shipping, ...)
+
+7. The Unreal build file `NetImgui.Build.cs` contains many option to toggle features/fonts.
+
+8. When using this plugin in the Editor, unselect the option `Edit->Editor Preferences->General->Performances->Use Less CPU when in Background`, otherwise framerate will be low when focus is on the NetImguiServer window instead of the Unreal Editor.
+
+9. It is possible to have some compilation linking errors concerning `Freetype`. The **Freetype** library comes with UnrealEngine and might have some issues on your current engine version, or target platform. Fortunatly, **UnrealNetImgui** use of it is optional (relies on it to improve the font quality) and can be safely disabled. **In UnrealNetImgui\Source\NetImgui.Build.cs : 85**
 ```
     // bool bFreeType_Enabled = true;
     bool bFreeType_Enabled = false;
