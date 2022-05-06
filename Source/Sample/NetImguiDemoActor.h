@@ -32,8 +32,8 @@ class NETIMGUI_API ANetImguiDemoActor : public AActor
 #if NETIMGUI_DEMO_ACTOR_ENABLED
 public:
 	virtual void Tick(float DeltaTime) override;
-	virtual void PostLoad() override { Super::PostLoad(); Initialize(); }			// Called after loading from disk
-	virtual void PostActorCreated() override { PostActorCreated(); Initialize(); }	// Called after editor/game creation
+	virtual void PostLoad() override { Super::PostLoad(); Initialize(); }					// Called after loading from disk
+	virtual void PostActorCreated() override { Super::PostActorCreated(); Initialize(); }	// Called after editor/game creation
 
 protected:	
 	void Initialize(); // Initialize the 'MethodB_DrawImgui_ActorCallback' callback

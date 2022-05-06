@@ -3,9 +3,6 @@
 #include "NetImguiModule.h"
 #include "CoreMinimal.h"
 
-#define LOCTEXT_NAMESPACE "FNetImguiModule"
-IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
-
 #if NETIMGUI_ENABLED
 
 #include <Interfaces/IPluginManager.h>
@@ -32,9 +29,10 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 	#include "Fonts/FontKenney/KenneyIcon.cpp"
 #endif
 
-#if NETIMGUI_FONT_ICON_AWESOME
-	#include "Fonts/FontAwesome5/FontAwesome_Regular.cpp"
-	#include "Fonts/FontAwesome5/FontAwesome_Solid.cpp"
+#if NETIMGUI_FONT_ICON_AWESOME	
+	#include "Fonts/FontAwesome6/fa-solid-900.cpp"
+	#include "Fonts/FontAwesome6/fa-regular-400.cpp"
+	#include "Fonts/FontAwesome6/fa-brands-400.cpp"
 #endif
 
 #if NETIMGUI_FONT_ICON_MATERIALDESIGN
@@ -48,9 +46,9 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 //=================================================================================================
 // Misc
 //=================================================================================================
-#include "ImguiUnrealCommand.h"
+#include "ImUnrealCommand.h"
 #if IMGUI_UNREAL_COMMAND_ENABLED
-static UECommandImgui::CommandContext* spUECommandContext = nullptr;
+static ImUnrealCommand::CommandContext* spImUnrealCommandContext = nullptr;
 #endif
 
 //=================================================================================================
@@ -143,7 +141,7 @@ void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_
 	ImFontAtlas* pFontAtlas = ImGui::GetIO().Fonts;
 	name += FString::Printf(TEXT(" (%ipx)"), static_cast<int>(pxSize));
 	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), TCHAR_TO_UTF8(name.GetCharArray().GetData()));
-	pFontAtlas->AddFontFromMemoryCompressedTTF(pFontData,	FontDataSize, pxSize, &Config, pGlyphRange);
+	pFontAtlas->AddFontFromMemoryCompressedTTF(pFontData, FontDataSize, pxSize, &Config, pGlyphRange);
 	
 	Config.MergeMode = true;
 #if NETIMGUI_FONT_JAPANESE
@@ -163,8 +161,10 @@ void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_
 #endif
 #if NETIMGUI_FONT_ICON_AWESOME
 		static const ImWchar iconFontAwesome_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-		pFontAtlas->AddFontFromMemoryCompressedTTF(FontAwesome_Regular_compressed_data, FontAwesome_Regular_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
-		pFontAtlas->AddFontFromMemoryCompressedTTF(FontAwesome_Solid_compressed_data, FontAwesome_Solid_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
+		static const ImWchar iconFontAwesomeBrands_ranges[] = { ICON_MIN_FAB, ICON_MAX_FAB, 0 };
+		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_solid_900_compressed_data, fa_solid_900_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
+		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_regular_400_compressed_data, fa_regular_400_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
+		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_brands_400_compressed_data, fa_brands_400_compressed_size, pxSize, &Config, iconFontAwesomeBrands_ranges);
 #endif
 #if NETIMGUI_FONT_ICON_MATERIALDESIGN
 		static const ImWchar iconMaterialDesign_ranges[] = { ICON_MIN_MD, ICON_MAX_MD, 0 };
@@ -237,9 +237,59 @@ void FNetImguiModule::Update()
 		if (NetImgui::IsDrawingRemote())
 		{
 			//----------------------------------------------------------------------------
-			// Ask all listener to draw their Dear ImGui content
+			// Show a simple information Window
 			//----------------------------------------------------------------------------
-			OnDrawImgui.Broadcast();
+			static bool sbShowHelp = false;
+			if (ImGui::BeginMainMenuBar())
+			{
+				if( ImGui::BeginMenu("NetImgui") ){
+					ImGui::MenuItem("Help", nullptr, &sbShowHelp);
+					ImGui::EndMenu();
+				}
+				ImGui::EndMainMenuBar();
+			}
+			if (sbShowHelp) {
+				static const ImVec4 kColorHighlight = ImVec4(0.1f, 0.85f, 0.1f, 1.0f);
+				ImGui::SetNextWindowSize(ImVec2(600,400), ImGuiCond_FirstUseEver);
+				if (ImGui::Begin("NetImgui: Help", &sbShowHelp)) {
+					ImGui::TextColored(kColorHighlight, "Version :"); ImGui::SameLine();
+					ImGui::TextUnformatted("NetImgui : " NETIMGUI_VERSION);
+					
+					ImGui::NewLine();
+					ImGui::TextColored(kColorHighlight, "Low 'Dear ImGui' menus responsiveness when used with editor");
+					ImGui::TextWrapped("Cause   : UE editor option to 'lower CPU cost when editor is unfocused' active");
+					ImGui::TextWrapped("Solution: Disable this option. (Edit->Editor Preferences->General->Performance->Use Less CPU when in background)");
+
+					ImGui::NewLine();
+					ImGui::TextColored(kColorHighlight, "Usage example");
+					ImGui::TextWrapped(	"Samples for using Dear ImGui with the NetImgui plugin, can be found in 'UnrealNetImgui/Source/Sample/NetImguiDemoActor.cpp'.  "
+#if NETIMGUI_DEMO_ACTOR_ENABLED
+										"The Actor can be dropped in your scene to show a demo window (NetImgui->Demo: DemoActor' to view it).  "
+										"To add the actor : [Quickly add to the project] button(top of viewport, cube with '+' icon) then type 'Net Imgui Demo Actor' to find it.  "
+#else
+										"This Demo actor isn't enable in the build. To active it, set 'bDemoActor_Enabled' to true in 'NetImgui.Build.cs'"
+#endif
+										"Demo Actor source code is also is also a good demonstration of how to integrate the plugin to your project");
+				}
+				ImGui::End();
+			}
+
+			//----------------------------------------------------------------------------
+			// Display a 'Unreal Console Command' menu entry in MainMenu bar, and the 
+			// 'Unreal Console command' window itself when requested
+			//----------------------------------------------------------------------------
+		#if IMGUI_UNREAL_COMMAND_ENABLED
+			if (ImGui::BeginMainMenuBar()) {
+				if( ImGui::BeginMenu("NetImgui") ){
+					ImGui::MenuItem("Unreal-Commands", nullptr, &ImUnrealCommand::IsVisible(spImUnrealCommandContext) );
+					ImGui::EndMenu();
+				}
+				ImGui::EndMainMenuBar();
+			}
+
+			// Always try displaying the 'Unreal Command Imgui' Window (handle Window visibility internally)
+			ImUnrealCommand::Show(spImUnrealCommandContext);
+		#endif
 
 			//----------------------------------------------------------------------------
 			// Display a 'Dear Imgui Demo' menu entry in MainMenu bar, and the 
@@ -262,21 +312,9 @@ void FNetImguiModule::Update()
 		#endif
 
 			//----------------------------------------------------------------------------
-			// Display a 'Unreal Console Command' menu entry in MainMenu bar, and the 
-			// 'Unreal Console command' window itself when requested
+			// Ask all listener to draw their Dear ImGui content
 			//----------------------------------------------------------------------------
-		#if IMGUI_UNREAL_COMMAND_ENABLED
-			if (ImGui::BeginMainMenuBar()) {
-				if( ImGui::BeginMenu("NetImgui") ){
-					ImGui::MenuItem("Unreal-Commands", nullptr, &UECommandImgui::IsVisible(spUECommandContext) );
-					ImGui::EndMenu();
-				}
-				ImGui::EndMainMenuBar();
-			}
-
-			// Always try displaying the 'Unreal Command Imgui' Window (handle Window visibility internally)
-			UECommandImgui::Show(spUECommandContext);
-		#endif
+			OnDrawImgui.Broadcast();
 		}
 	}
 }
@@ -412,7 +450,7 @@ void FNetImguiModule::StartupModule()
 	// Initialize the Unreal Console Command Widget
 	//---------------------------------------------------------------------------------------------
 #if IMGUI_UNREAL_COMMAND_ENABLED
-	spUECommandContext	= UECommandImgui::Create(); // Create a new Imgui Command Window
+	spImUnrealCommandContext = ImUnrealCommand::Create(); // Create a new Imgui Command Window
 	// Commented code demonstrating how to add/modify Presets
 	// Could also modify the list of 'Default Presets' directly (UECommandImgui::sDefaultPresets)
 	//UECommandImgui::AddPresetFilters(spUECommandContext, TEXT("ExamplePreset"), {"ai.Debug", "fx.Dump"});
@@ -441,10 +479,12 @@ void FNetImguiModule::ShutdownModule()
 	mpContext = nullptr;
 
 #if IMGUI_UNREAL_COMMAND_ENABLED
-	UECommandImgui::Destroy(spUECommandContext);
+	ImUnrealCommand::Destroy(spImUnrealCommandContext);
 #endif
 
 #endif //NETIMGUI_ENABLED
 }
 
+#define LOCTEXT_NAMESPACE "FNetImguiModule"
+IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 #undef LOCTEXT_NAMESPACE

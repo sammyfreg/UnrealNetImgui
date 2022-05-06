@@ -1,8 +1,8 @@
 // Distributed under the MIT License (MIT) (see accompanying LICENSE file)
 //
 // @author	: Sammy Fatnassi
-// @date	: 2021/08/08
-// @version : 0.1
+// @date	: 2022/04/03
+// @version : 0.2
 // @brief	: Support for 'Unreal Commands' through 'Dear ImGui UI'.
 // @note	: Used 'SOutputLog.cpp' and 'FConsoleCommandExecutor.cpp' as reference
 // @note	: This '.h/.cpp pair' is part of the 'UnrealNetImgui' library, but can be used standalone in your own Dear ImGui Unreal integration
@@ -29,7 +29,7 @@
 
 #include "CoreMinimal.h"
 
-namespace UECommandImgui
+namespace ImUnrealCommand
 {
 	struct			CommandContext;
 

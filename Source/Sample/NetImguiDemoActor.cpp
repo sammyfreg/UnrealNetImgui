@@ -33,9 +33,9 @@ static bool sbShowDemoNetImgui		= false;
 static const ImVec4 kColorHighlight = ImVec4(0.1f, 0.85f, 0.1f, 1.0f);
 
 #if NETIMGUI_FONT_ICON_AWESOME
-#define CLIENTSTRING_NAME	ICON_FA_INFO_CIRCLE " Name"
+#define CLIENTSTRING_NAME	ICON_FA_CIRCLE_INFO " Name"
 #define CLIENTSTRING_SHOW	ICON_FA_EYE
-#define CLIENTSTRING_POS	ICON_FA_MAP_MARKER_ALT " Position"
+#define CLIENTSTRING_POS	ICON_FA_LOCATION_DOT " Position"
 
 #elif NETIMGUI_FONT_ICON_MATERIALDESIGN
 #define CLIENTSTRING_NAME	ICON_MD_INFO  " Name"
@@ -149,7 +149,7 @@ void MethodA_DrawImgui_FrameCallback()
 			
 			#if NETIMGUI_FONT_ICON_AWESOME
 				//--- Showcase using a FString to mix icon and text together ---
-				FString titleAwesome = FString::Format(TEXT("{0} Font Awesome Icons"), {UTF8_TO_TCHAR(ICON_FA_INFO_CIRCLE)});
+				FString titleAwesome = FString::Format(TEXT("{0} Font Awesome Icons"), {UTF8_TO_TCHAR(ICON_FA_CIRCLE_INFO)});
 				ImGui::TextColored(kColorHighlight, TCHAR_TO_UTF8(*titleAwesome));
 				
 				//--- Showcase using a utf8 string with icons inserted in it as a regular printf string constant ---
@@ -157,7 +157,8 @@ void MethodA_DrawImgui_FrameCallback()
 				{
 					NetImguiScopedFont iconFont(FNetImguiModule::eFont::kIcons64);
 					const char* zAnimation[]={ICON_FA_BATTERY_EMPTY, ICON_FA_BATTERY_QUARTER, ICON_FA_BATTERY_HALF, ICON_FA_BATTERY_THREE_QUARTERS, ICON_FA_BATTERY_FULL };
-					ImGui::Text(ICON_FA_SMILE " " ICON_FA_EXPAND_ARROWS_ALT " " ICON_FA_COGS " " ICON_FA_ARROW_ALT_CIRCLE_LEFT " " ICON_FA_ARROW_ALT_CIRCLE_RIGHT " %s", zAnimation[iconAnimFrame%UE_ARRAY_COUNT(zAnimation)]);
+					ImGui::Text(ICON_FA_FACE_SMILE " " ICON_FA_MINIMIZE " " ICON_FA_GEAR " " ICON_FA_ARROW_ROTATE_LEFT " " ICON_FA_ARROW_ROTATE_RIGHT " %s", zAnimation[iconAnimFrame%UE_ARRAY_COUNT(zAnimation)]); // Font awesome standard icons
+					ImGui::Text(ICON_FA_CANADIAN_MAPLE_LEAF " " ICON_FA_JIRA " " ICON_FA_ATLASSIAN " " ICON_FA_ANDROID); // Font Awesome free icons examples
 				}
 			#endif
 			

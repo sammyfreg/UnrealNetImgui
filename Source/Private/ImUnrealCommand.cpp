@@ -2,7 +2,7 @@
 // @author	: Sammy Fatnassi
 // @brief	: See header file for details
 
-#include "ImguiUnrealCommand.h"
+#include "ImUnrealCommand.h"
 
 #if IMGUI_UNREAL_COMMAND_ENABLED
 
@@ -11,7 +11,7 @@
 
 #define LOCTEXT_NAMESPACE "ImguiUnrealCommand"
 
-namespace UECommandImgui
+namespace ImUnrealCommand
 {
 
 static FString kPresetHistoryName	= TEXT("Recents");
@@ -560,7 +560,7 @@ CommandContext* Create(bool addDefaultPreset)
 		}
 
 		// Default selected Preset is 'Commands History', initialize this special Preset
-		kPresetHistoryIndex			= pCmdContext->mPresets.Find(&FindOrCreatePreset(*pCmdContext, kPresetHistoryName));		
+		kPresetHistoryIndex			= pCmdContext->mPresets.Find(&FindOrCreatePreset(*pCmdContext, kPresetHistoryName));
 		pCmdContext->mPresetIndex	= kPresetHistoryIndex;
 		
 		UpdatePresetCommandHistory(*pCmdContext);
@@ -595,7 +595,7 @@ void AddPresetFilters(CommandContext* pCmdContext, const FString& presetName, co
 //=================================================================================================
 void Destroy(CommandContext*& pCmdContext)
 {
-	if (pCmdContext) {		
+	if (pCmdContext) {
 		delete pCmdContext;
 		pCmdContext = nullptr;
 	}
@@ -619,10 +619,12 @@ void Show(CommandContext* pCmdContext)
 	//---------------------------------------------------------------------------------------------
 	if (pCmdContext->mWindowActive)
 	{
-		if (ImGui::Begin("Unreal Commands [?]", &pCmdContext->mWindowActive))
+		ImGui::SetNextWindowSize(ImVec2(400,400), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Unreal Console Commands [?]", &pCmdContext->mWindowActive))
 		{
 			if( ImGui::IsItemHovered() ){
-				ImGui::SetTooltip(	"[ Unreal Commands browser ]\n"
+				ImGui::SetTooltip(	"[ Unreal Console Commands browser ]\n"
+									"By Sammy Fatnassi.\n"
 									"  -Press 'Enter' to execute the 'Command' typed in the input field.\n"
 									"  -Press 'Up/Down' to change selection from the Filtered command list.\n"
 									"  -Press 'Tab' to copy the selected 'Command' into the input field.\n"
