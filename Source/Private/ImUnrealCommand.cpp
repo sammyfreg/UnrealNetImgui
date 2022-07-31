@@ -8,6 +8,7 @@
 
 #include "HAL/IConsoleManager.h" 
 #include "Features/IModularFeatures.h"
+#include "Engine/Engine.h"
 
 #define LOCTEXT_NAMESPACE "ImguiUnrealCommand"
 
@@ -86,7 +87,6 @@ struct CommandContext
 	int							mFilteredIndex		= 0;		// Item selected in the current list of commands
 	bool						mPendingSelectCopy	= false;	// Request to copy the selected item into the input field
 	bool						mPendingSelectFocus = false;	// Selection changed, makes sure the item is visible in the list
-	IConsoleCommandExecutor*	mpCmdExecutor		= nullptr;	// UE Object used to send the command to
 };
 
 //=================================================================================================
@@ -163,18 +163,6 @@ Preset::Preset(const FString& name)
 	StringToUTF8(mConfig.mName, mNameUTF8);
 }
 
-//=================================================================================================
-// Fetch the first available 'Command Executor' and save it for running inputed commands later
-//=================================================================================================
-void InitializeExecutor(CommandContext& cmdContext)
-{
-	if( cmdContext.mpCmdExecutor == nullptr ){
-		TArray<IConsoleCommandExecutor*> CommandExecutors = IModularFeatures::Get().GetModularFeatureImplementations<IConsoleCommandExecutor>(IConsoleCommandExecutor::ModularFeatureName());
-		if (CommandExecutors.IsValidIndex(0)){
-			cmdContext.mpCmdExecutor = CommandExecutors[0];
-		}
-	}
-}
 
 //=================================================================================================
 // Find all command entries associated with this Preset
@@ -295,6 +283,38 @@ Preset& FindOrCreatePreset(CommandContext& cmdContext, const FString& presetName
 }
 
 //=================================================================================================
+// Populate the special 'History' Preset, with recently used 'Unreal Commands'
+//=================================================================================================
+void UpdatePresetCommandHistory(CommandContext& cmdContext)
+{
+	Preset& presetHistory		= FindOrCreatePreset(cmdContext, kPresetHistoryName);
+	presetHistory.mDirty		= true;
+	presetHistory.mSortResults	= false; // Want to preserve history order, not name
+	presetHistory.mConfig.mCommands.Reset();
+	presetHistory.mConfig.mFilters.Reset();
+	IConsoleManager::Get().GetConsoleHistory(TEXT(""), presetHistory.mConfig.mCommands);
+	
+	// Invert the results, listing recent items first
+	int32 lastIndex = presetHistory.mConfig.mCommands.Num()-1;
+	for(int i=0; i<(lastIndex+1)/2; ++i){
+		presetHistory.mConfig.mCommands.SwapMemory(i, lastIndex-i);
+	}
+}
+
+//=================================================================================================
+// Run a requested Unreal Command
+//=================================================================================================
+void ExecuteCommand(CommandContext& cmdContext, const TCHAR* pCommand)
+{
+	IConsoleManager::Get().AddConsoleHistoryEntry(TEXT(""), pCommand);
+	GEngine->DeferredCommands.Add(pCommand);
+	// Special Case for 'History' Preset, content needs refreshing
+	if( cmdContext.mPresetIndex == kPresetHistoryIndex ){
+		UpdatePresetCommandHistory(cmdContext);
+	}
+}
+
+//=================================================================================================
 // Handle keyboard inputs for the Window (filter selection change, command exec, ...)
 //=================================================================================================
 void UpdateInput( CommandContext& cmdContext )
@@ -323,28 +343,9 @@ void UpdateInput( CommandContext& cmdContext )
 
 		//-----------------------------------------------------------------------------------------
 		// Execute the command entered in the 'Command Input' field
-		if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)) && cmdContext.mpCmdExecutor ) {
-			cmdContext.mpCmdExecutor->Exec(UTF8_TO_TCHAR(cmdContext.mFilterConfig.mInput));
+		if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
+			ExecuteCommand(cmdContext, UTF8_TO_TCHAR(cmdContext.mFilterConfig.mInput));
 		}
-	}
-}
-
-//=================================================================================================
-// Populate the special 'History' Preset, with recently used 'Unreal Commands'
-//=================================================================================================
-void UpdatePresetCommandHistory(CommandContext& cmdContext)
-{
-	Preset& presetHistory		= FindOrCreatePreset(cmdContext, kPresetHistoryName);
-	presetHistory.mDirty		= true;
-	presetHistory.mSortResults	= false; // Want to preserve history order, not name
-	presetHistory.mConfig.mCommands.Reset();
-	presetHistory.mConfig.mFilters.Reset();
-	IConsoleManager::Get().GetConsoleHistory(TEXT(""), presetHistory.mConfig.mCommands);
-	
-	// Invert the results, listing recent items first
-	int32 lastIndex = presetHistory.mConfig.mCommands.Num()-1;
-	for(int i=0; i<(lastIndex+1)/2; ++i){
-		presetHistory.mConfig.mCommands.SwapMemory(i, lastIndex-i);
 	}
 }
 
@@ -496,8 +497,8 @@ void DrawFilteredList(CommandContext& cmdContext)
 			}
 
 			// Handle mouse interactions
-			if (bClicked2x && cmdContext.mpCmdExecutor) {
-				cmdContext.mpCmdExecutor->Exec(*entry.mCommand);
+			if (bClicked2x ) {
+				ExecuteCommand(cmdContext, *entry.mCommand);
 			}
 			if (bClicked || bClicked2x) {
 				cmdContext.mFilteredIndex		= i;
@@ -612,7 +613,6 @@ void Show(CommandContext* pCmdContext)
 	if (pCmdContext == nullptr) {
 		return;
 	}
-	InitializeExecutor(*pCmdContext);
 
 	//---------------------------------------------------------------------------------------------
 	// Display Unreal Command Window and refresh its content when needed
@@ -644,7 +644,7 @@ void Show(CommandContext* pCmdContext)
 //=================================================================================================
 bool& IsVisible(CommandContext* pCmdContext)
 {
-	if (pCmdContext == nullptr || pCmdContext->mpCmdExecutor == nullptr) {
+	if (pCmdContext == nullptr) {
 		static bool sInvalid;
 		sInvalid = false;
 		return sInvalid;

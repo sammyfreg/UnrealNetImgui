@@ -1,10 +1,9 @@
 // Distributed under the MIT License (MIT) (see accompanying LICENSE file)
 //
 // @author	: Sammy Fatnassi
-// @date	: 2022/04/03
-// @version : 0.2
+// @date	: 2022/06/26
+// @version : 0.3
 // @brief	: Support for 'Unreal Commands' through 'Dear ImGui UI'.
-// @note	: Used 'SOutputLog.cpp' and 'FConsoleCommandExecutor.cpp' as reference
 // @note	: This '.h/.cpp pair' is part of the 'UnrealNetImgui' library, but can be used standalone in your own Dear ImGui Unreal integration
 // @usage	: Search for 'IMGUI_UNREAL_COMMAND_ENABLED' in 'https://github.com/sammyfreg/UnrealNetImgui/blob/master/Source/Private/NetImguiModule.cpp'
 //			1- Call 'Create()' once
