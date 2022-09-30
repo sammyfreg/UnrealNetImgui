@@ -156,6 +156,8 @@ public class NetImgui : ModuleRules
 
 		bFreeType_Enabled &= bNetImgui_Enabled;
 		if (bFreeType_Enabled){
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "UElibPNG");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "FreeType2");
 		}
 
