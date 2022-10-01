@@ -133,7 +133,7 @@ void TryListeningForServer(const FString& ListeningPort)
 //=================================================================================================
 void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_t FontDataSize, bool extraIconGlyphs, bool appendJapanese=false, const ImWchar* pGlyphRange=nullptr )
 {
-	ImFontConfig Config;	
+	ImFontConfig Config;
 #if NETIMGUI_FREETYPE_ENABLED
 	Config.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LightHinting;	// Without this, kanji character looks wrong in smaller font size
 #endif	
@@ -393,10 +393,11 @@ void FNetImguiModule::StartupModule()
 {
 #if NETIMGUI_ENABLED
 	NetImgui::Startup();
-	mpContext		= ImGui::CreateContext();
-	ImGuiIO& io		= ImGui::GetIO();
-	io.ConfigFlags	|= ImGuiConfigFlags_DockingEnable;
-	io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
+	mpContext					= ImGui::CreateContext();
+	ImGuiIO& io					= ImGui::GetIO();
+	io.ConfigFlags				|= ImGuiConfigFlags_DockingEnable;
+	io.Fonts->Flags				|= ImFontAtlasFlags_NoPowerOfTwoHeight;
+	io.Fonts->TexDesiredWidth	= 8*1024;
 	ImGui::SetCurrentContext(mpContext);
 
 	//---------------------------------------------------------------------------------------------
