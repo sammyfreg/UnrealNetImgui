@@ -136,7 +136,7 @@ void MethodA_DrawImgui_FrameCallback()
 				//--- Showcase using a FString to mix icon and text together ---
 				ImGui::NewLine();
 				FString titleKenney = FString::Format(TEXT("{0} Game Kenney Icons"), {UTF8_TO_TCHAR(ICON_KI_INFO_CIRCLE)});
-				ImGui::TextColored(kColorHighlight, TCHAR_TO_UTF8(*titleKenney));
+				ImGui::TextColored(kColorHighlight, "%s", TCHAR_TO_UTF8(*titleKenney));
 
 				//--- Showcase using multiple strings that includes normal text and icons, merged together in 1 utf8 string constant ---
 				ImGui::TextUnformatted("I " ICON_KI_HEART " icons in my text.");
@@ -150,7 +150,7 @@ void MethodA_DrawImgui_FrameCallback()
 			#if NETIMGUI_FONT_ICON_AWESOME
 				//--- Showcase using a FString to mix icon and text together ---
 				FString titleAwesome = FString::Format(TEXT("{0} Font Awesome Icons"), {UTF8_TO_TCHAR(ICON_FA_CIRCLE_INFO)});
-				ImGui::TextColored(kColorHighlight, TCHAR_TO_UTF8(*titleAwesome));
+				ImGui::TextColored(kColorHighlight, "%s",  TCHAR_TO_UTF8(*titleAwesome));
 				
 				//--- Showcase using a utf8 string with icons inserted in it as a regular printf string constant ---
 				ImGui::Text(u8"I %s icons in my text.", ICON_FA_HEART);
@@ -291,7 +291,7 @@ void ANetImguiDemoActor::MethodC_DrawImgui_ActorTick()
 			//-----------------------------------------------------------------------------------------
 			// Every 'ANetImguiDemoActor' display the following content
 			//-----------------------------------------------------------------------------------------
-			FString windowName = FString::Format(TEXT("NetImguiDemoActor Tick###{0}"), {reinterpret_cast<size_t>(this)}); // '###+IntegerID' Generates a unique Window ID so each actor have their own window
+			FString windowName = FString::Format(TEXT("NetImguiDemoActor Tick###{0}"), {GetTypeHash(this)}); // '###+IntegerID' Generates a unique Window ID so each actor have their own window
 			ImGui::SetNextWindowSize(ImVec2(400.f, 200.f), ImGuiCond_Once);
 			if (ImGui::Begin(TCHAR_TO_UTF8(*windowName)))
 			{
