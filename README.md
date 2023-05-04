@@ -75,10 +75,10 @@ This plugins comes with ***Imgui Unreal Commands***, adding Unreal Commands brow
    - **Dear ImGui's** menu content created in your code, will be displayed and controlled in it (after a connection is established).
    - The client list comes pre-configured with 3 clients configuration (game, editor, server) that will be automatically connected to when detected. For remote PCs, game consoles or others, create a new client configuration with proper address settings.
 
-6. You can now invoke **Dear ImGui** drawing functions to generate your GUI every frame.
-   - Any code running on the Game Thread can now invoke make drawing calls (as long as  `NetImguiHelper::IsDrawing()` is true)
+6. You can now use **Dear ImGui's** drawing functions to generate your GUI every frame.
+   - Any code running on the Game Thread can make drawing calls (as long as  `NetImguiHelper::IsDrawing()` is true)
    - You can also add a callback to `FNetImguiModule::OnDrawImgui` to be invoked by **UnrealNetImgui** when some drawing is expected.
-   - The define `NETIMGUI_ENABLED` allows to selectively disable code if planning to remove **NetImgui** on certain game configurations (shipping, ...)
+   - The define `#if NETIMGUI_ENABLED` allows to selectively disable code if planning to remove **NetImgui** on certain game configurations (shipping, ...)
 
 7. The Unreal build file `NetImgui.Build.cs` contains many option to toggle features/fonts.
 
@@ -108,7 +108,7 @@ void AMyImGuiActor::Tick(float DeltaTime)
 #if NETIMGUI_ENABLED
     //---------------------------------------------------------------------------------------------
     // Avoid drawing ImGui menus when not expecting a new frame, reducing CPU cost.
-    // Mandatary when 'bSupportFrameSkip' is emabled in 'NetImgui.Build.cs', otherwise
+    // Mandatary when 'bSupportFrameSkip' is enabled in 'NetImgui.Build.cs', otherwise
     // 'Dear ImGui' will assert on a missing 'ImGui::NewFrame()'
     //---------------------------------------------------------------------------------------------
     if( NetImguiHelper::IsDrawing() )
