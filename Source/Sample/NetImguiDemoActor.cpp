@@ -177,6 +177,34 @@ void MethodA_DrawImgui_FrameCallback()
 			}
 
 			//-------------------------------------------------------------------------------------
+			// Display a ImPlot example
+			// Note:	We rely on the 'NETIMGUI_IMPLOT_ENABLED' define to know 
+			//			if this code path should be enabled or not 
+			//-------------------------------------------------------------------------------------
+		#if NETIMGUI_IMPLOT_ENABLED
+			ImGui::NewLine();
+			if( ImGui::CollapsingHeader("ImPlot", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				constexpr int bar_data[] = {1,2,3,4,5,6,7,8,9,10};
+				static bool sbImPlotInitOnce = false;
+				static float x_data[512];
+				static float y_data[512];
+				static_assert(UE_ARRAY_COUNT(x_data) == UE_ARRAY_COUNT(y_data));
+				for (int i(0); !sbImPlotInitOnce && i < UE_ARRAY_COUNT(x_data); ++i){
+					x_data[i] = static_cast<float>(i) * 0.02f;
+					y_data[i] = sin(x_data[i])*5.f + 5.f;
+				}
+				sbImPlotInitOnce = true;
+
+				if (ImPlot::BeginPlot("My Plot")) {
+					ImPlot::PlotBars("My Bar Plot", bar_data, UE_ARRAY_COUNT(bar_data));
+					ImPlot::PlotLine("My Line Plot", x_data, y_data, UE_ARRAY_COUNT(x_data));
+					ImPlot::EndPlot();
+				}
+			}
+		#endif
+
+			//-------------------------------------------------------------------------------------
 			// Display a list of actor in the Scene
 			//-------------------------------------------------------------------------------------
 			ImGui::NewLine();

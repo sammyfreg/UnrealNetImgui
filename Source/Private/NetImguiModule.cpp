@@ -47,6 +47,7 @@
 // Misc
 //=================================================================================================
 #include "ImUnrealCommand.h"
+#include "Sample\NetImguiDemoNodeEditor.h"
 #if IMGUI_UNREAL_COMMAND_ENABLED
 static ImUnrealCommand::CommandContext* spImUnrealCommandContext = nullptr;
 #endif
@@ -297,20 +298,36 @@ void FNetImguiModule::Update()
 			//----------------------------------------------------------------------------
 		#if NETIMGUI_DEMO_IMGUI_ENABLED
 			static bool sbShowDemoImgui = false;
+			if( sbShowDemoImgui ){
+				ImGui::ShowDemoWindow(&sbShowDemoImgui);
+			}
+		#if NETIMGUI_IMPLOT_ENABLED
+			static bool sbShowDemoImPlot = false;
+			if( sbShowDemoImPlot ){
+				ImPlot::ShowDemoWindow(&sbShowDemoImPlot);
+			}
+		#endif
+		#if NETIMGUI_NODE_EDITOR_ENABLED
+			static bool sbShowDemoNodeEditor = false;
+			NodeEditorDemo::ShowDemo(sbShowDemoNodeEditor);
+		#endif
 			if (ImGui::BeginMainMenuBar())
 			{
 				if( ImGui::BeginMenu("NetImgui") ){
 					ImGui::MenuItem("Demo: Dear Imgui", nullptr, &sbShowDemoImgui);
+				#if NETIMGUI_IMPLOT_ENABLED
+					ImGui::MenuItem("Demo: ImPlot", nullptr, &sbShowDemoImPlot);
+				#endif
+				#if NETIMGUI_NODE_EDITOR_ENABLED
+					ImGui::MenuItem("Demo: Node Editor", nullptr, &sbShowDemoNodeEditor);
+				#endif
 					ImGui::EndMenu();
 				}
 				ImGui::EndMainMenuBar();
 			}
-		
-			if( sbShowDemoImgui ){
-				ImGui::ShowDemoWindow(&sbShowDemoImgui);
-			}
-		#endif
+		#endif	// NETIMGUI_DEMO_IMGUI_ENABLED
 
+		
 			//----------------------------------------------------------------------------
 			// Ask all listener to draw their Dear ImGui content
 			//----------------------------------------------------------------------------
@@ -318,6 +335,7 @@ void FNetImguiModule::Update()
 		}
 	}
 }
+
 //=================================================================================================
 // SetDefaultFont
 //-------------------------------------------------------------------------------------------------
@@ -400,6 +418,10 @@ void FNetImguiModule::StartupModule()
 	io.Fonts->TexDesiredWidth	= 8*1024;
 	ImGui::SetCurrentContext(mpContext);
 
+#if NETIMGUI_IMPLOT_ENABLED
+	mpImPlotContext				= ImPlot::CreateContext();
+#endif
+
 	//---------------------------------------------------------------------------------------------
 	// Load our Font 
 	// IMPORTANT: Must be added in same order as enum 'FNetImguiModule::eFont'
@@ -475,6 +497,15 @@ void FNetImguiModule::ShutdownModule()
 	if (NetImgui::IsDrawing())
 		NetImgui::EndFrame();
 	NetImgui::Shutdown();
+
+#if NETIMGUI_IMPLOT_ENABLED
+	ImPlot::DestroyContext(mpImPlotContext);
+	mpImPlotContext = nullptr;
+#endif
+
+#if NETIMGUI_NODE_EDITOR_ENABLED
+	NodeEditorDemo::Release();
+#endif
 
 	ImGui::DestroyContext(mpContext);
 	mpContext = nullptr;
