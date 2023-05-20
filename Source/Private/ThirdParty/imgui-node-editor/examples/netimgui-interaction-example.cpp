@@ -125,7 +125,10 @@ struct Example:
 
         if (m_FirstFrame){
             ed::SetNodePosition(nodeB_Id, ImVec2(300, 10));
-            m_Links.push_back({ ed::LinkId(m_NextLinkId++), nodeA_OutputPinId, nodeB_InputPinId1 }); // 1 default connection
+             //ADDED
+            m_Links.push_back({ ed::LinkId(m_NextLinkId++), nodeA_OutputPinId, nodeB_InputPinId1}); // 1 default connection
+            m_ActivesPin[nodeB_InputPinId1.Get()] = true;
+            m_ActivesPin[nodeA_OutputPinId.Get()] = true;
         }
 
         ed::BeginNode(nodeB_Id);
@@ -140,9 +143,13 @@ struct Example:
         ed::EndNode();
 
         // Submit Links
-        for (auto& linkInfo : m_Links)
+        for (auto& linkInfo : m_Links){
             ed::Link(linkInfo.Id, linkInfo.InputId, linkInfo.OutputId);
-
+             //ADDED
+            if( ed::IsLinkSelected(linkInfo.Id) || linkInfo.Id == ed::GetHoveredLink()){
+                ed::Flow(linkInfo.Id, ed::FlowDirection::Forward);
+            }
+        }
         //
         // 2) Handle interactions
         //

@@ -1,5 +1,8 @@
 #if NETIMGUI_NODE_EDITOR_ENABLED // @EDIT to avoid compiling this library when not requested
 
+using ImGuiKey_ = ImGuiKey; //@EDIT Dear ImGui 1.89+ renamed the enum but NodeEditor not up to date yet
+namespace ImGui { inline bool IsKeyPressed(int key){ return IsKeyPressed(StaticCast<ImGuiKey>(key)); } }
+
 //------------------------------------------------------------------------------
 // VERSION 0.9.1
 //
