@@ -26,14 +26,15 @@ Additional to the inclusion of extra fonts and icons, some Dear ImGui extension 
 From the author :
 > ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that ImGui fans will love. ImPlot is well suited for visualizing program data in real-time or creating interactive plots, and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself.
 >
-|<img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-pie.gif">   | <img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-tables.gif">  | <img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-controls.gif">  |
-|---|---|---|
+><img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-pie.gif" width="32%">
+><img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-tables.gif" width="32%">
+><img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-controls.gif" width="32%">
 https://github.com/epezent/implot
 
 ### Node-Editor
 From the author :
 > An implementation of node editor with ImGui-like API. Project purpose is to serve as a basis for more complex solutions like blueprint editors.
-<img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/Node-Editor.gif" >
+> <img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/Node-Editor.gif" >
 https://github.com/thedmd/imgui-node-editor
 
 # Connecting to the NetImgui Server
