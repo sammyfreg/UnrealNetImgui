@@ -9,7 +9,7 @@ using UnrealBuildTool;
 //-------------------------------------------------------------------------------------------------
 // Plugin exposing Dear ImGui library for drawing 2D menus. These menus are displayed and 
 // controlled from an external application ("Plugin\UnrealNetImgui\NetImguiServer\netImguiServer.exe")
-// but processed from this engine code. Works on various platform supported by UE4
+// but processed from this engine code. Works on various platform supported by UE4 and UE5
 //
 // Note:	Displaying Dear ImGui menus InGame, can be done by using the plugin UnrealImgui instead
 //			(https://github.com/segross/UnrealImGui). It was designed for local display of 
@@ -42,8 +42,9 @@ using UnrealBuildTool;
 // "-netimguiserver 192.168.1.2:60"	Try connecting to NetImguiServer at '192.168.1.2 : 60'
 //
 //-------------------------------------------------------------------------------------------------
-// Dear ImGui Library	: v1.88	(https://github.com/ocornut/imgui)
-// NetImGui Library		: v1.8	(https://github.com/sammyfreg/netImgui)
+// Dear ImGui Library	: v1.89	docking (https://github.com/ocornut/imgui)
+// NetImGui Library		: v1.9	(https://github.com/sammyfreg/netImgui)
+// Tested on Unreal Engine 4.27, 5.0, 5.2
 //=================================================================================================
 
 public class NetImgui : ModuleRules

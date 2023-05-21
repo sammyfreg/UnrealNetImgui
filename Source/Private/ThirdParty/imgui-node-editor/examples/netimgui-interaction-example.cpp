@@ -37,7 +37,11 @@ struct Example:
         ed::Config config;
         config.SettingsFile = "NodeEditorSampleNetImgui.json";
         m_Context = ed::CreateEditor(&config);
+        ed::SetCurrentEditor(m_Context);
+        ed::GetStyle().FlowSpeed    *= 0.5f;
+        ed::GetStyle().FlowDuration = 1.f;
         m_ActivesPin.Init(false, 64);
+        ed::SetCurrentEditor(nullptr);
     }
 
     void OnStop() override

@@ -1,3 +1,4 @@
+
 <p align="center" style="font-size:30px"><b>Unreal NetImgui</b></p>
 <p align="center" style="vertical-align:middle">
 <img src="https://avatars3.githubusercontent.com/u/6615685?s=200&v=4" width=128 height=128>
@@ -8,7 +9,7 @@
 # Summary
 ### Support of [NetImgui](https://github.com/sammyfreg/netImgui "NetImgui") in [Unreal Engine 4 & 5](https://github.com/EpicGames) 
 
-**UnrealNetImgui** is a plugin adding remote debug GUI interface to **Unreal Engine** using the [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui") paired with [**NetImgui**](https://github.com/sammyfreg/netImgui). Allows **UE** users to remotely display and control some custom GUI on the dedicated **NetImgui Server** application. This proves convenient with games running on limited inputs/display hardware, such as gaming consoles and smartphones. Also reduces the game screen clutter of debug informations contents.
+**UnrealNetImgui** is a plugin adding remote debug GUI interface to **Unreal Engine** using the [**Dear ImGui**](https://github.com/ocornut/imgui "Dear ImGui") paired with [**NetImgui**](https://github.com/sammyfreg/netImgui). Allows **Unreal Engine** users to remotely display and control some custom GUI on the dedicated **NetImgui Server** application. This proves convenient with games running on limited inputs/display hardware, such as gaming consoles and smartphones. Also reduces the game screen clutter of debug informations contents.
 
 ![NetImgui](https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/UnrealNetImgui.gif)
 
@@ -18,6 +19,22 @@
 
 # Fonts and Icons
 The plugin comes packaged with various Latin fonts, a Japanese Mincho font, [Kenney's Gaming Icons](https://kenney.nl/assets/game-icons "gaming icons"), [Font Awesome](https://fontawesome.com "Font Awesome") (the free subset) and [Google Material Designs icons](https://github.com/google/material-design-icons "Google Material Designs icons"), for a nice selection of useful icons. The screenshot above shows a small subset of available icons. Mixing latin text, kanjis and icons is kept straightforward using utf8 strings.
+
+# Dear ImGui extensions
+Additional to the inclusion of extra fonts and icons, some Dear ImGui extension are already integrated and ready to use.
+### ImPlot
+From the author :
+> ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that ImGui fans will love. ImPlot is well suited for visualizing program data in real-time or creating interactive plots, and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself.
+>
+|<img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-pie.gif">   | <img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-tables.gif">  | <img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-controls.gif">  |
+|---|---|---|
+https://github.com/epezent/implot
+
+### Node-Editor
+From the author :
+> An implementation of node editor with ImGui-like API. Project purpose is to serve as a basis for more complex solutions like blueprint editors.
+<img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/Node-Editor.gif" >
+https://github.com/thedmd/imgui-node-editor
 
 # Connecting to the NetImgui Server
 There are mutliple ways of connecting your game to the **NetImguiServer**.
@@ -149,9 +166,17 @@ void AMyImGuiActor::Tick(float DeltaTime)
 #endif
 }
 ```
+# Release notes 1.10
+ - Updated to [Dear ImGui 1.89.5](https://github.com/ocornut/imgui/releases/tag/v1.89.5) (docking branch)
+ - Updated to [NetImgui 1.19](https://github.com/sammyfreg/netImgui/releases/tag/v1.9.0)
+- Tested on **Unreal Engine 4.27, 5.0, 5.2** *(other versions should be supported without issues)*
+ - Added support for [ImPlot](https://github.com/epezent/implot)
+ - Added support for [Node-Editor](https://github.com/thedmd/imgui-node-editor)
+
 # Release notes 1.9
  - Tested with **Unreal Engine 5**
  - Updated **Font Awesome** icons (v5 -> v6)
+ 
 # Release notes 1.8
  - Added Japanese Font
  - Added Kenney's gaming icons
@@ -169,7 +194,7 @@ void AMyImGuiActor::Tick(float DeltaTime)
  - Added ***Imgui Unreal Commands*** support (browse and execute Unreal Commands)
  - Upgraded to **Dear Imgui 1.83** *(docking branch)*
  - Upgraded to [**NetImgui 1.5**](https://github.com/sammyfreg/netImgui/releases/tag/v1.5.0) *(more details in link)*
- - Tested on **Unreal 4.26** *(other versions should be supported without issues)*
+ - Tested on **Unreal Engine 4.26, ** *(other versions should be supported without issues)*
  - **NetImgui Server** now requires less CPU/GPU
 
 # Credits
@@ -185,3 +210,7 @@ Various icons have been integrated to **UnrealNetImgui** existing fonts and acce
 - [Kenney's Gaming Icons](https://kenney.nl/assets/game-icons "gaming icons") for his set of useful game related symbols.
 
 - [Font Awesome](https://fontawesome.com "Font Awesome") (the free subset) for the nice selection of every day use icons.
+
+**Dear ImGui Extensions**
+ - [ImPlot](https://github.com/epezent/implot) by [Evan Pezent](https://github.com/epezent).
+ - [Node-Editor](https://github.com/thedmd/imgui-node-editor) by [Michał Cichoń](https://github.com/thedmd).
