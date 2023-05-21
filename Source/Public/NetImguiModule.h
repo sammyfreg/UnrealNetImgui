@@ -11,8 +11,19 @@
 
 //=================================================================================================
 // Additional Header includes
+// Note: The following 'Defines' are optional features enabled by user in NetImgui.Build.cs
 //=================================================================================================
-#include "../Private/ThirdParty/DearImgui/imgui.h"
+#include "imgui.h"
+
+/// See https://github.com/epezent/implot for more info
+#if NETIMGUI_IMPLOT_ENABLED
+	#include "implot.h"
+#endif
+
+// See https://github.com/thedmd/imgui-node-editor for more info
+#if NETIMGUI_NODE_EDITOR_ENABLED
+	#include "imgui_node_editor.h"
+#endif
 
 // Note1:	Active Icon Fonts can be toggled in 'NetImgui.Build.cs'
 // 
@@ -24,20 +35,20 @@
 // List of defines to easily use Icons available in 'Kenney's Game Icons'
 // For list available icons, see: https://kenney.nl/assets/game-icons and https://kenney.nl/assets/game-icons-expansion
 #if NETIMGUI_FONT_ICON_GAMEKENNEY
-	#include "../Private/Fonts/IconFontCppHeader/IconsKenney.h"
+	#include "Fonts/IconFontCppHeader/IconsKenney.h"
 #endif
 
 // List of defines to easily use Icons available in 'Font Awesome Icons' (only the 'free' subset is made available)
 // For list of available icons, see: https://fontawesome.com/v6/search?m=free (Regular/Solid/Brands)
 #if NETIMGUI_FONT_ICON_AWESOME
-	#include "../Private/Fonts/IconFontCppHeader/IconsFontAwesome6.h"
-	#include "../Private/Fonts/IconFontCppHeader/IconsFontAwesome6Brands.h"
+	#include "Fonts/IconFontCppHeader/IconsFontAwesome6.h"
+	#include "Fonts/IconFontCppHeader/IconsFontAwesome6Brands.h"
 #endif
 
 // List of defines to easily use Icons available in 'Google's Material Design Icons'
 // For list of available icons, see: https://fonts.google.com/icons
 #if NETIMGUI_FONT_ICON_MATERIALDESIGN
-	#include "../Private/Fonts/IconFontCppHeader/IconsMaterialDesign.h"
+	#include "Fonts/IconFontCppHeader/IconsMaterialDesign.h"
 #endif
 
 #endif //NETIMGUI_ENABLED
@@ -112,10 +123,10 @@ public:
 	virtual bool					IsConnected()const;
 
 	/**	
-	* Use this method when trying to draw Dear ImGui content anywhere in your code. It is not
-	* required when drawing is happening inside a 'OnDrawImgui' callback.
+	* Use this method when drawing Dear ImGui content on the gamethread.
+	* It is not required when drawing is happening inside a 'OnDrawImgui' callback.
 	* 
-	* With 'FrameSkip' enabled, there are frames where we are not waiting on some 
+	* With 'FrameSkip' enabled, there are frames where we are not waiting on new 
 	* Dear Imgui drawing, and attempting to do so will result in an error.
 	* 
 	* @return True if the module is expecting some Dear ImGui draws this frame
@@ -146,7 +157,10 @@ protected:
 	virtual bool					isDrawing()const;
 	void							Update();
 	FDelegateHandle					mUpdateCallback;
-	struct ImGuiContext*			mpContext = nullptr;
+	ImGuiContext*					mpContext = nullptr;
+#if NETIMGUI_IMPLOT_ENABLED
+	ImPlotContext*					mpImPlotContext = nullptr;
+#endif
 #endif //NETIMGUI_ENABLED
 };
 

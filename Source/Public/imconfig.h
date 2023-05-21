@@ -14,17 +14,9 @@
 
 #pragma once
 
-//=================================================================================================
-// Need to have the Imgui functions exported outside the UnrealNetImgui Plugin's Dll.
-// Unreal build system automatically define the appropriate dll export value in 'NETIMGUI_API' 
-// (because of NetImgui.build.cs filename). Dear ImGui expects a the define IMGUI_API
-// to know how to export its code, so we are relying on the value provided by Unreal.
-#include <Modules/ModuleManager.h>
-#define IMGUI_API NETIMGUI_API
-//=================================================================================================
-
-#if NETIMGUI_FREETYPE_ENABLED
-#define IMGUI_ENABLE_FREETYPE
+// Attempt at disabling XBox win32 functions
+#if !PLATFORM_WINDOWS 
+    #define IMGUI_DISABLE_WIN32_FUNCTIONS 
 #endif
 
 
@@ -104,6 +96,8 @@
         constexpr ImVec4(const MyVec4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}   \
         operator MyVec4() const { return MyVec4(x,y,z,w); }
 */
+//---- ...Or use Dear ImGui's own very basic math operators.
+//#define IMGUI_DEFINE_MATH_OPERATORS
 
 //---- Use 32-bit vertex indices (default is 16-bit) is one way to allow large meshes with more than 64K vertices.
 // Your renderer backend will need to support it (most example renderer backends support both 16/32-bit indices).
@@ -121,11 +115,6 @@
 // (use 'Metrics->Tools->Item Picker' to pick widgets with the mouse and break into them for easy debugging.)
 //#define IM_DEBUG_BREAK  IM_ASSERT(0)
 //#define IM_DEBUG_BREAK  __debugbreak()
-
-//---- Debug Tools: Have the Item Picker break in the ItemAdd() function instead of ItemHoverable(),
-// (which comes earlier in the code, will catch a few extra items, allow picking items other than Hovered one.)
-// This adds a small runtime cost which is why it is not enabled by default.
-//#define IMGUI_DEBUG_TOOL_ITEM_PICKER_EX
 
 //---- Debug Tools: Enable slower asserts
 //#define IMGUI_DEBUG_PARANOID

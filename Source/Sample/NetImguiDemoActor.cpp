@@ -136,7 +136,7 @@ void MethodA_DrawImgui_FrameCallback()
 				//--- Showcase using a FString to mix icon and text together ---
 				ImGui::NewLine();
 				FString titleKenney = FString::Format(TEXT("{0} Game Kenney Icons"), {UTF8_TO_TCHAR(ICON_KI_INFO_CIRCLE)});
-				ImGui::TextColored(kColorHighlight, TCHAR_TO_UTF8(*titleKenney));
+				ImGui::TextColored(kColorHighlight, "%s", TCHAR_TO_UTF8(*titleKenney));
 
 				//--- Showcase using multiple strings that includes normal text and icons, merged together in 1 utf8 string constant ---
 				ImGui::TextUnformatted("I " ICON_KI_HEART " icons in my text.");
@@ -150,7 +150,7 @@ void MethodA_DrawImgui_FrameCallback()
 			#if NETIMGUI_FONT_ICON_AWESOME
 				//--- Showcase using a FString to mix icon and text together ---
 				FString titleAwesome = FString::Format(TEXT("{0} Font Awesome Icons"), {UTF8_TO_TCHAR(ICON_FA_CIRCLE_INFO)});
-				ImGui::TextColored(kColorHighlight, TCHAR_TO_UTF8(*titleAwesome));
+				ImGui::TextColored(kColorHighlight, "%s",  TCHAR_TO_UTF8(*titleAwesome));
 				
 				//--- Showcase using a utf8 string with icons inserted in it as a regular printf string constant ---
 				ImGui::Text(u8"I %s icons in my text.", ICON_FA_HEART);
@@ -175,6 +175,34 @@ void MethodA_DrawImgui_FrameCallback()
 				}
 			#endif
 			}
+
+			//-------------------------------------------------------------------------------------
+			// Display a ImPlot example
+			// Note:	We rely on the 'NETIMGUI_IMPLOT_ENABLED' define to know 
+			//			if this code path should be enabled or not 
+			//-------------------------------------------------------------------------------------
+		#if NETIMGUI_IMPLOT_ENABLED
+			ImGui::NewLine();
+			if( ImGui::CollapsingHeader("ImPlot", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				constexpr int bar_data[] = {1,2,3,4,5,6,7,8,9,10};
+				static bool sbImPlotInitOnce = false;
+				static float x_data[512];
+				static float y_data[512];
+				static_assert(UE_ARRAY_COUNT(x_data) == UE_ARRAY_COUNT(y_data));
+				for (int i(0); !sbImPlotInitOnce && i < UE_ARRAY_COUNT(x_data); ++i){
+					x_data[i] = static_cast<float>(i) * 0.02f;
+					y_data[i] = sin(x_data[i])*5.f + 5.f;
+				}
+				sbImPlotInitOnce = true;
+
+				if (ImPlot::BeginPlot("My Plot")) {
+					ImPlot::PlotBars("My Bar Plot", bar_data, UE_ARRAY_COUNT(bar_data));
+					ImPlot::PlotLine("My Line Plot", x_data, y_data, UE_ARRAY_COUNT(x_data));
+					ImPlot::EndPlot();
+				}
+			}
+		#endif
 
 			//-------------------------------------------------------------------------------------
 			// Display a list of actor in the Scene
@@ -291,7 +319,7 @@ void ANetImguiDemoActor::MethodC_DrawImgui_ActorTick()
 			//-----------------------------------------------------------------------------------------
 			// Every 'ANetImguiDemoActor' display the following content
 			//-----------------------------------------------------------------------------------------
-			FString windowName = FString::Format(TEXT("NetImguiDemoActor Tick###{0}"), {reinterpret_cast<size_t>(this)}); // '###+IntegerID' Generates a unique Window ID so each actor have their own window
+			FString windowName = FString::Format(TEXT("NetImguiDemoActor Tick###{0}"), {GetTypeHash(this)}); // '###+IntegerID' Generates a unique Window ID so each actor have their own window
 			ImGui::SetNextWindowSize(ImVec2(400.f, 200.f), ImGuiCond_Once);
 			if (ImGui::Begin(TCHAR_TO_UTF8(*windowName)))
 			{
