@@ -29,12 +29,14 @@ From the author :
 ><img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-pie.gif" width="32%">
 ><img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-tables.gif" width="32%">
 ><img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/ImPlot-controls.gif" width="32%">
+
 https://github.com/epezent/implot
 
 ### Node-Editor
 From the author :
 > An implementation of node editor with ImGui-like API. Project purpose is to serve as a basis for more complex solutions like blueprint editors.
-> <img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/Node-Editor.gif" >
+> <img src="https://raw.githubusercontent.com/wiki/sammyfreg/netImgui/Web/img/Node-Editor.gif">
+
 https://github.com/thedmd/imgui-node-editor
 
 # Connecting to the NetImgui Server
