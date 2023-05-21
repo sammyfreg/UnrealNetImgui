@@ -232,16 +232,14 @@ public class NetImgui : ModuleRules
 		PublicDefinitions.Add("IMPLOT_API=NETIMGUI_API");
 		PublicDefinitions.Add("IM_NODE_EDITOR_API=NETIMGUI_API");
 
-		if (bFreeType_Enabled)
-		{
+		if (bFreeType_Enabled){
 			PublicDefinitions.Add("IMGUI_ENABLE_FREETYPE");
 		}
 
-		PrivateDefinitions.Add(string.Format("RUNTIME_LOADER_ENABLED={0}", bEnableRuntimeLoader ? 1 : 0));
+        if (bNetImgui_Enabled && bImPlot_Enabled) {
+            PublicDefinitions.Add("IMGUI_DEFINE_MATH_OPERATORS"); // Note: Needed by ImPlot
+        }
 
-		if (Target.Platform.Equals(UnrealTargetPlatform.XSX))
-		{
-			PublicDefinitions.Add("IMGUI_DISABLE_WIN32_FUNCTIONS=1");
-		}
+        PrivateDefinitions.Add(string.Format("RUNTIME_LOADER_ENABLED={0}", bEnableRuntimeLoader ? 1 : 0));
 	}
 }

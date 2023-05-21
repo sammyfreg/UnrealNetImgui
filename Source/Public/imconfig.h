@@ -14,9 +14,11 @@
 
 #pragma once
 
-#if NETIMGUI_IMPLOT_ENABLED
-    #define IMGUI_DEFINE_MATH_OPERATORS // Note: Needed by ImPlot
+// Attempt at disabling XBox win32 functions
+#if !PLATFORM_WINDOWS 
+    #define IMGUI_DISABLE_WIN32_FUNCTIONS 
 #endif
+
 
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block so it can be used as a single statement.
