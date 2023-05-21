@@ -238,5 +238,10 @@ public class NetImgui : ModuleRules
 		}
 
 		PrivateDefinitions.Add(string.Format("RUNTIME_LOADER_ENABLED={0}", bEnableRuntimeLoader ? 1 : 0));
+
+		if (Target.Platform.Equals(UnrealTargetPlatform.XSX))
+		{
+			PublicDefinitions.Add("IMGUI_DISABLE_WIN32_FUNCTIONS=1");
+		}
 	}
 }
