@@ -236,10 +236,6 @@ public class NetImgui : ModuleRules
 			PublicDefinitions.Add("IMGUI_ENABLE_FREETYPE");
 		}
 
-        if (bNetImgui_Enabled && bImPlot_Enabled) {
-            PublicDefinitions.Add("IMGUI_DEFINE_MATH_OPERATORS"); // Note: Needed by ImPlot
-        }
-
         PrivateDefinitions.Add(string.Format("RUNTIME_LOADER_ENABLED={0}", bEnableRuntimeLoader ? 1 : 0));
 	}
 }
