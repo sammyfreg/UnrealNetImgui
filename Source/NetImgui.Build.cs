@@ -73,6 +73,13 @@ public class NetImgui : ModuleRules
 		bool bNetImgui_Enabled = true;
 		//---------------------------------------------------------------------
 		
+		// Toggle support for drawing ImGui content over the game screen 
+		// This allows drawing content over both the RemoteServer and Game
+		// with the possibility of transfering input control between the two
+		bool bLocalDraw_Enabled = true;
+
+		//---------------------------------------------------------------------
+
 		// When true, only redraw Dear ImGui when needed, saving processing.
 		// When enabled, user must check "NetImguiHelper::IsDrawing()" before emiting ImGui draws
 		bool bFrameSkip_Enabled = true;
@@ -182,8 +189,21 @@ public class NetImgui : ModuleRules
 		bool bEnableRuntimeLoader = true;
 
 		PublicDependencyModuleNames.AddRange( new string[] { "Core", "Projects"} );
-		PrivateDependencyModuleNames.AddRange( new string[] { "CoreUObject", "Engine", "Sockets" } );
-		PrivateIncludePaths.Add("Private/ThirdParty/DearImgui");
+		PrivateDependencyModuleNames.AddRange( new string[] { "CoreUObject", "Engine", "Sockets", "UnrealEd" } ); //SF Added editor test
+		PrivateDependencyModuleNames.AddRange( new string[] {
+			
+			//"TargetPlatform",
+			"RenderCore",
+			//"ShaderCore",
+			"Renderer",
+			"RHI",
+			"Slate", //SF TEMP?
+			"SlateCore", //SF TEMP?
+		});
+		PrivateIncludePaths.AddRange( new string[] { 
+			"Private/ThirdParty/DearImgui",
+			//"../Shaders/Private",
+		});
 
 		PCHUsage = PCHUsageMode.NoSharedPCHs; // Prevents problem with Dear ImGui/NetImgui sources not including the right first header
 		PrivatePCHHeaderFile = "Public/NetImguiModule.h";
@@ -194,7 +214,7 @@ public class NetImgui : ModuleRules
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "FreeType2");
 		}
-
+		
 #if UE_4_24_OR_LATER
 		bLegacyPublicIncludePaths = false;
 		ShadowVariableWarningLevel = WarningLevel.Error;
@@ -204,6 +224,7 @@ public class NetImgui : ModuleRules
 		// Setup Environment to build with/without netImgui
 		//---------------------------------------------------------------------
 		PublicDefinitions.Add(string.Format("NETIMGUI_ENABLED={0}", bNetImgui_Enabled ? 1 : 0));
+		PublicDefinitions.Add(string.Format("NETIMGUI_LOCALDRAW_ENABLED={0}", bLocalDraw_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FRAMESKIP_ENABLED={0}", bFrameSkip_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_WAITCONNECTION_AUTO_ENABLED={0}", bAutoWaitConnection_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FREETYPE_ENABLED={0}", bNetImgui_Enabled && bFreeType_Enabled ? 1 : 0));

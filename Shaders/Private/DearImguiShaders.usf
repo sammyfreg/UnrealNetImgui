@@ -1,0 +1,53 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	ScreenPixelShader.usf: Filter pixel shader source.
+=============================================================================*/
+
+#include "/Engine/Public/Platform.ush"
+//#include "/Engine/Private/Common.ush"
+#include "/Engine/Private/GammaCorrectionCommon.ush"
+
+float4x4 		ViewProjection;
+Texture2D 		ImguiTexture;
+SamplerState 	ImguiSampler;
+
+//=================================================================================================
+// VERTEX SHADER
+//=================================================================================================
+struct FImguiVertexOutput
+{
+	float4 Position 			: SV_POSITION;
+	//noperspective float2 UV 	: TEXCOORD0;
+	float2 UV 		: TEXCOORD0;
+	float4 Color 	: COLOR0;
+};
+
+void MainVS(
+	float2 InPosition : ATTRIBUTE0,
+	float2 InUV       : ATTRIBUTE1,
+	float4 InColor    : ATTRIBUTE2,
+	out FImguiVertexOutput Output
+	)
+{
+	Output.Position 	= mul(float4(InPosition, 0, 1), ViewProjection);
+	//Output.Position 	= mul(ViewProjection, float4(InPosition, 0, 1));
+	Output.UV			= InUV;
+	Output.Color 		= InColor;
+	//Output.Color 		= float4(sRGBToLinear(InColor.rgb), InColor.a);
+}
+
+//=================================================================================================
+// PIXEL SHADER
+//=================================================================================================
+void MainPS(
+	FImguiVertexOutput Input,
+	out float4 OutColor : SV_Target0
+	)
+{
+	//OutColor = TexOrArr2DSample(InTexture, InTextureSampler, Input.UV);
+	//OutColor = Input.Color;
+	//OutColor = float4(Input.Color.rgb, Input.Color.a * ImguiTexture.Sample(ImguiSampler, Input.UV).r);
+	OutColor = Input.Color * ImguiTexture.Sample(ImguiSampler, Input.UV).rgba;
+}
+

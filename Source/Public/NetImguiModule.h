@@ -14,6 +14,7 @@
 // Note: The following 'Defines' are optional features enabled by user in NetImgui.Build.cs
 //=================================================================================================
 #include "imgui.h"
+#include "NetImguiLocalDraw.h"
 
 /// See https://github.com/epezent/implot for more info
 #if NETIMGUI_IMPLOT_ENABLED
@@ -53,7 +54,6 @@
 
 #endif //NETIMGUI_ENABLED
 
-
 //=================================================================================================
 // NETIMGUI Module
 //=================================================================================================
@@ -75,7 +75,7 @@ public:
 		}
 		return *spLoadedModule;
 	}
-
+	
 	/**
 	 * Checks to see if this module is loaded and ready. It is only valid to call Get() if IsAvailable() returns true.
 	 *
@@ -152,12 +152,17 @@ public:
 	** Note: If NetImgui module is reloaded, you will lose your callbacks
 	*/
 	FSimpleMulticastDelegate		OnDrawImgui;
+	//IRendererModule& 				GetRendererModule();
+	//void 							ResetCachedRendererModule();
 
-protected:	
+protected:
 	virtual bool					isDrawing()const;
 	void							Update();
-	FDelegateHandle					mUpdateCallback;
+	
+	FDelegateHandle					mUpdateCallback;	
 	ImGuiContext*					mpContext = nullptr;
+	NetImguiLocalDrawSupport		mLocalDrawSupport;
+	
 #if NETIMGUI_IMPLOT_ENABLED
 	ImPlotContext*					mpImPlotContext = nullptr;
 #endif

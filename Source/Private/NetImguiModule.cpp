@@ -11,6 +11,8 @@
 #include "HAL/IConsoleManager.h"
 #include "ThirdParty/NetImgui/NetImgui_Api.h"
 
+#include "NetImguiLocalDraw.h"
+
 #if NETIMGUI_FREETYPE_ENABLED
 #include "misc/freetype/imgui_freetype.h"
 #endif
@@ -51,6 +53,30 @@
 #if IMGUI_UNREAL_COMMAND_ENABLED
 static ImUnrealCommand::CommandContext* spImUnrealCommandContext = nullptr;
 #endif
+
+#pragma optimize("", off) //SF
+
+//=================================================================================================
+//SF test
+//=================================================================================================
+#if 0
+IRendererModule& FNetImguiModule::GetRendererModule()
+{
+	if (!CachedRendererModule)
+	{
+		CachedRendererModule = &FModuleManager::LoadModuleChecked<IRendererModule>(TEXT("Renderer"));
+	}
+
+	return *CachedRendererModule;
+}
+
+void FNetImguiModule::ResetCachedRendererModule()
+{
+	CachedRendererModule = NULL;
+}
+//=================================================================================================
+#endif
+
 
 //=================================================================================================
 // If engine was launched with "-netimguiserver [hostname]", try connecting directly 
@@ -210,6 +236,7 @@ static FAutoConsoleCommand GNetImguiDisconnectCmd
 	FConsoleCommandWithArgsDelegate::CreateStatic(CommandDisconnect)
 );
 
+
 //=================================================================================================
 // Update
 //-------------------------------------------------------------------------------------------------
@@ -230,11 +257,13 @@ void FNetImguiModule::Update()
 	if( NetImgui::IsDrawing() )
 		NetImgui::EndFrame();
 
-#if NETIMGUI_FRAMESKIP_ENABLED //Not interested in drawing Dear ImGui Content, until connection established
+// Not interested in drawing Dear ImGui Content, until connection established
+#if NETIMGUI_FRAMESKIP_ENABLED 
 	if( NetImgui::IsConnected() )
 #endif
 	{
 		NetImgui::NewFrame(NETIMGUI_FRAMESKIP_ENABLED);
+		mLocalDrawSupport.InterceptInput();
 		if (NetImgui::IsDrawingRemote())
 		{
 			//----------------------------------------------------------------------------
@@ -410,6 +439,10 @@ bool FNetImguiModule::IsConnected() const
 void FNetImguiModule::StartupModule()
 {
 #if NETIMGUI_ENABLED
+	// Maps virtual shader source directory /Plugin/FX/Niagara to the plugin's actual Shaders directory.
+	FString PluginShaderDir = FPaths::Combine(IPluginManager::Get().FindPlugin(TEXT("Netimgui"))->GetBaseDir(), TEXT("Shaders"));
+	AddShaderSourceDirectoryMapping(TEXT("/Plugin/UnrealNetimgui"), PluginShaderDir);
+
 	NetImgui::Startup();
 	mpContext					= ImGui::CreateContext();
 	ImGuiIO& io					= ImGui::GetIO();
@@ -452,9 +485,8 @@ void FNetImguiModule::StartupModule()
 	int width(0), height(0);
 	io.Fonts->GetTexDataAsAlpha8(&pPixelData, &width, &height);
 	NetImgui::SendDataTexture(io.Fonts->TexID, pPixelData, static_cast<uint16_t>(width), static_cast<uint16_t>(height), NetImgui::eTexFormat::kTexFmtA8);
-	io.Fonts->ClearTexData();									// Note: Free unneeded client texture memory. Various font size with japanese and icons can increase memory substancially(~64MB)
 	SetDefaultFont(FNetImguiModule::eFont::kCousineFixed16);
-
+	
 	//---------------------------------------------------------------------------------------------
 	// Setup connection to wait for netImgui server to reach us
 	// Note:	The default behaviour is for the Game Client to wait for connection from the NetImgui Server
@@ -480,9 +512,15 @@ void FNetImguiModule::StartupModule()
 	//UECommandImgui::AddPresetCommands(spUECommandContext, TEXT("ExamplePreset"), {"Stat Unit", "Stat Fps"});
 #endif
 
-	mUpdateCallback		= FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
+	mUpdateCallback	= FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
+	mLocalDrawSupport.Initialize();
+	
+	// Note: Free unneeded client texture memory (after localdraw was able to process it).
+	// Various font size with japanese and icons can increase memory substancially(~64MB)
+	io.Fonts->ClearTexData();
 #endif //NETIMGUI_ENABLED
 }
+
 
 //=================================================================================================
 // Shutdown
@@ -493,6 +531,7 @@ void FNetImguiModule::ShutdownModule()
 {
 #if NETIMGUI_ENABLED
 	FCoreDelegates::OnEndFrame.Remove(mUpdateCallback);
+	mLocalDrawSupport.Terminate();
 	mUpdateCallback.Reset();
 	if (NetImgui::IsDrawing())
 		NetImgui::EndFrame();
@@ -520,3 +559,5 @@ void FNetImguiModule::ShutdownModule()
 #define LOCTEXT_NAMESPACE "FNetImguiModule"
 IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 #undef LOCTEXT_NAMESPACE
+
+#pragma optimize("", on) //SF
