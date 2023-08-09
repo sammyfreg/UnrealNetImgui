@@ -254,6 +254,8 @@ static FAutoConsoleCommand GNetImguiDisconnectCmd
 //=================================================================================================
 void FNetImguiModule::Update()
 {
+	mLocalDrawSupport.Update();
+
 	if( NetImgui::IsDrawing() )
 		NetImgui::EndFrame();
 
@@ -262,8 +264,9 @@ void FNetImguiModule::Update()
 	if( NetImgui::IsConnected() )
 #endif
 	{
-		NetImgui::NewFrame(NETIMGUI_FRAMESKIP_ENABLED);
+		NetImgui::NewFrame(NETIMGUI_FRAMESKIP_ENABLED);	
 		mLocalDrawSupport.InterceptInput();
+	
 		if (NetImgui::IsDrawingRemote())
 		{
 			//----------------------------------------------------------------------------

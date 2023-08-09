@@ -1,14 +1,11 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	ScreenPixelShader.usf: Filter pixel shader source.
-=============================================================================*/
-
+//=================================================================================================
+//	Imgui Vertex & Pixel Shader
+//=================================================================================================
 #include "/Engine/Public/Platform.ush"
-//#include "/Engine/Private/Common.ush"
 #include "/Engine/Private/GammaCorrectionCommon.ush"
 
-float4x4 		ViewProjection;
+float4x4 		ImguiViewProjection;
+float4 			ImguiParameters;
 Texture2D 		ImguiTexture;
 SamplerState 	ImguiSampler;
 
@@ -17,8 +14,7 @@ SamplerState 	ImguiSampler;
 //=================================================================================================
 struct FImguiVertexOutput
 {
-	float4 Position 			: SV_POSITION;
-	//noperspective float2 UV 	: TEXCOORD0;
+	float4 Position : SV_POSITION;
 	float2 UV 		: TEXCOORD0;
 	float4 Color 	: COLOR0;
 };
@@ -30,11 +26,11 @@ void MainVS(
 	out FImguiVertexOutput Output
 	)
 {
-	Output.Position 	= mul(float4(InPosition, 0, 1), ViewProjection);
-	//Output.Position 	= mul(ViewProjection, float4(InPosition, 0, 1));
+	#define kParamAlpha ImguiParameters.x
+	Output.Position 	= mul(float4(InPosition, 0, 1), ImguiViewProjection);
 	Output.UV			= InUV;
-	Output.Color 		= InColor;
-	//Output.Color 		= float4(sRGBToLinear(InColor.rgb), InColor.a);
+	//Output.Color 		= InColor;
+	Output.Color 		= float4(sRGBToLinear(InColor.rgb), InColor.a*kParamAlpha);
 }
 
 //=================================================================================================

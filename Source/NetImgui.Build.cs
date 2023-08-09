@@ -194,14 +194,17 @@ public class NetImgui : ModuleRules
 			
 			//"TargetPlatform",
 			"RenderCore",
+			"InputCore",
 			//"ShaderCore",
 			"Renderer",
 			"RHI",
 			"Slate", //SF TEMP?
 			"SlateCore", //SF TEMP?
+
 		});
 		PrivateIncludePaths.AddRange( new string[] { 
 			"Private/ThirdParty/DearImgui",
+			
 			//"../Shaders/Private",
 		});
 
