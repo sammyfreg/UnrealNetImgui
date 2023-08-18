@@ -187,15 +187,11 @@ public class NetImgui : ModuleRules
 		// Developer modules are automatically loaded only in editor builds but can be stripped out from other builds.
 		// Enable runtime loader, if you want this module to be automatically loaded in runtime builds (monolithic).
 		bool bEnableRuntimeLoader = true;
-
 		PublicDependencyModuleNames.AddRange( new string[] { "Core", "Projects"} );
-		PrivateDependencyModuleNames.AddRange( new string[] { "CoreUObject", "Engine", "Sockets", "UnrealEd" } ); //SF Added editor test
+		PrivateDependencyModuleNames.AddRange( new string[] { "CoreUObject", "Engine", "Sockets" } );
 		PrivateDependencyModuleNames.AddRange( new string[] {
-			
-			//"TargetPlatform",
 			"RenderCore",
 			"InputCore",
-			//"ShaderCore",
 			"Renderer",
 			"RHI",
 			"Slate", //SF TEMP?
@@ -210,6 +206,11 @@ public class NetImgui : ModuleRules
 
 		PCHUsage = PCHUsageMode.NoSharedPCHs; // Prevents problem with Dear ImGui/NetImgui sources not including the right first header
 		PrivatePCHHeaderFile = "Public/NetImguiModule.h";
+
+        if( bBuildEditor ){
+            PrivateDependencyModuleNames.Add( "UnrealEd" );
+			PrivateDependencyModuleNames.Add( "LevelEditor" );
+        }
 
 		bFreeType_Enabled &= bNetImgui_Enabled;
 		if (bFreeType_Enabled){

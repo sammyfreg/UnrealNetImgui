@@ -52,6 +52,12 @@
 	#include "Fonts/IconFontCppHeader/IconsMaterialDesign.h"
 #endif
 
+#if WITH_EDITOR
+#include "SLevelViewport.h"
+typedef TFunction<bool(const SLevelViewport&)> FWantImguiInEditorViewFN;
+#endif
+typedef TFunction<bool(const UGameViewportClient&)> FWantImguiInGameViewFN;
+
 #endif //NETIMGUI_ENABLED
 
 //=================================================================================================
@@ -81,15 +87,13 @@ public:
 	 *
 	 * @return True if the module is loaded and ready to use
 	 */
-	static inline bool				IsAvailable() { return FModuleManager::Get().IsModuleLoaded("NetImgui"); }
-
+	static inline bool	IsAvailable() { return FModuleManager::Get().IsModuleLoaded("NetImgui"); }
 
 	/** IModuleInterface implementation */
-	virtual void					StartupModule() override;
-	virtual void					ShutdownModule() override;
+	virtual void		StartupModule() override;
+	virtual void		ShutdownModule() override;
 
 #if NETIMGUI_ENABLED
-
 	enum class eFont
 	{
 		kProggyClean,		// Built-in Dear ImGui Font
@@ -110,17 +114,16 @@ public:
 		//... Feel free to also add/remove font size for your convenience
 		_Count,
 	};
-
-	virtual void					SetDefaultFont(eFont font);
-	virtual void					PushFont(eFont font);
-	virtual void					PopFont();
+	virtual void SetDefaultFont(eFont font);
+	virtual void PushFont(eFont font);
+	virtual void PopFont();
 	
 	/**
 	* Tell us if the plugin has a working connection established with NetImgui remote server
 	* 
 	* @return True if the module is connected to a NetImgui remote server
 	*/
-	virtual bool					IsConnected()const;
+	virtual bool IsConnected()const;
 
 	/**	
 	* Use this method when drawing Dear ImGui content on the gamethread.
@@ -131,7 +134,7 @@ public:
 	* 
 	* @return True if the module is expecting some Dear ImGui draws this frame
 	*/
-	inline bool						IsDrawing()
+	inline bool IsDrawing()
 	{
 		checkSlow(IsInGameThread());
 		if ( isDrawing() )
@@ -147,27 +150,44 @@ public:
 		return false;
 	}
 
+	/**	
+	* User configurable callback to let the plugin know which viewport should
+	* display local Dear Imgui content (when enabled). 
+	* 
+	* Assigning 'nullptr' will reset to the default behaviour of enabled on 
+	* Game, PIE and Editor perspective viewport.
+	*/
+	void SetWantImguiInGameViewFN(const FWantImguiInGameViewFN& callback);
+	void SetWantImguiInEditorViewFN(const FWantImguiInEditorViewFN& callback);
+	bool WantImguiInView(const UGameViewportClient* inGameClient)const;
+	bool WantImguiInView(const SLevelViewport*)const;
+	
 	/**
 	* Add your Dear ImGui drawing callbacks to this emitter
 	** Note: If NetImgui module is reloaded, you will lose your callbacks
 	*/
-	FSimpleMulticastDelegate		OnDrawImgui;
-	//IRendererModule& 				GetRendererModule();
-	//void 							ResetCachedRendererModule();
-
+	FSimpleMulticastDelegate	OnDrawImgui;
+	
 protected:
-	virtual bool					isDrawing()const;
-	void							Update();
+	virtual bool				isDrawing()const;
+	void						Update();
 	
-	FDelegateHandle					mUpdateCallback;	
+	FDelegateHandle				UpdateCallbackCB;
+	NetImguiLocalDrawSupport	LocalDrawSupport;
+	FWantImguiInGameViewFN		WantImguiInGameViewFN;
+#if WITH_EDITOR
+	FWantImguiInEditorViewFN	WantImguiInEditorViewFN;
+#endif	
+	
+	//SF Move to per context
 	ImGuiContext*					mpContext = nullptr;
-	NetImguiLocalDrawSupport		mLocalDrawSupport;
-	
 #if NETIMGUI_IMPLOT_ENABLED
 	ImPlotContext*					mpImPlotContext = nullptr;
 #endif
 #endif //NETIMGUI_ENABLED
 };
+
+//SF TODO use this for remote too? 'SRemoteControlPanel::CreateCPUThrottleWarning'
 
 #if NETIMGUI_ENABLED
 struct NetImguiScopedFont

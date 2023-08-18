@@ -57,28 +57,6 @@ static ImUnrealCommand::CommandContext* spImUnrealCommandContext = nullptr;
 #pragma optimize("", off) //SF
 
 //=================================================================================================
-//SF test
-//=================================================================================================
-#if 0
-IRendererModule& FNetImguiModule::GetRendererModule()
-{
-	if (!CachedRendererModule)
-	{
-		CachedRendererModule = &FModuleManager::LoadModuleChecked<IRendererModule>(TEXT("Renderer"));
-	}
-
-	return *CachedRendererModule;
-}
-
-void FNetImguiModule::ResetCachedRendererModule()
-{
-	CachedRendererModule = NULL;
-}
-//=================================================================================================
-#endif
-
-
-//=================================================================================================
 // If engine was launched with "-netimguiserver [hostname]", try connecting directly 
 // to the NetImguiServer application at the provided address.
 // 
@@ -254,7 +232,7 @@ static FAutoConsoleCommand GNetImguiDisconnectCmd
 //=================================================================================================
 void FNetImguiModule::Update()
 {
-	mLocalDrawSupport.Update();
+	LocalDrawSupport.Update();
 
 	if( NetImgui::IsDrawing() )
 		NetImgui::EndFrame();
@@ -265,7 +243,7 @@ void FNetImguiModule::Update()
 #endif
 	{
 		NetImgui::NewFrame(NETIMGUI_FRAMESKIP_ENABLED);	
-		mLocalDrawSupport.InterceptInput();
+		LocalDrawSupport.InterceptInput();
 	
 		if (NetImgui::IsDrawingRemote())
 		{
@@ -515,13 +493,16 @@ void FNetImguiModule::StartupModule()
 	//UECommandImgui::AddPresetCommands(spUECommandContext, TEXT("ExamplePreset"), {"Stat Unit", "Stat Fps"});
 #endif
 
-	mUpdateCallback	= FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
-	mLocalDrawSupport.Initialize();
+	UpdateCallbackCB	= FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
+	LocalDrawSupport.Initialize();
 	
 	// Note: Free unneeded client texture memory (after localdraw was able to process it).
 	// Various font size with japanese and icons can increase memory substancially(~64MB)
 	io.Fonts->ClearTexData();
 #endif //NETIMGUI_ENABLED
+
+	SetWantImguiInGameViewFN(nullptr);
+	SetWantImguiInEditorViewFN(nullptr);
 }
 
 
@@ -533,9 +514,9 @@ void FNetImguiModule::StartupModule()
 void FNetImguiModule::ShutdownModule()
 {
 #if NETIMGUI_ENABLED
-	FCoreDelegates::OnEndFrame.Remove(mUpdateCallback);
-	mLocalDrawSupport.Terminate();
-	mUpdateCallback.Reset();
+	FCoreDelegates::OnEndFrame.Remove(UpdateCallbackCB);
+	LocalDrawSupport.Terminate();
+	UpdateCallbackCB.Reset();
 	if (NetImgui::IsDrawing())
 		NetImgui::EndFrame();
 	NetImgui::Shutdown();
@@ -559,6 +540,56 @@ void FNetImguiModule::ShutdownModule()
 #endif //NETIMGUI_ENABLED
 }
 
+//=================================================================================================
+// xxxWantImguiInGameView
+//-------------------------------------------------------------------------------------------------
+// Handle requests of knowing if we should use local Dear Imgui content in a game viewport.
+// Default behavior is to always enabled local content.
+//=================================================================================================
+bool DefaultWantImguiInGameView(const UGameViewportClient& inGameClient)
+{
+	return true;
+}
+
+void FNetImguiModule::SetWantImguiInGameViewFN(const FWantImguiInGameViewFN& callback)
+{	
+	WantImguiInGameViewFN = callback;
+}
+
+bool FNetImguiModule::WantImguiInView(const UGameViewportClient* inGameClient)const
+{
+	if( inGameClient ){
+		return WantImguiInGameViewFN ? WantImguiInGameViewFN(*inGameClient)
+									: DefaultWantImguiInGameView(*inGameClient);
+	}
+	return false;
+}
+
+//=================================================================================================
+// xxxWantImguiInEditorView
+//-------------------------------------------------------------------------------------------------
+// Handle requests of knowing if we should use local Dear Imgui content in a editor viewport.
+// Default behavior is to enable it on view set to perspective and without PIE current active.
+//=================================================================================================
+bool DefaultWantImguiInEditorView(const SLevelViewport& inEditorViewport)
+{
+	return 	inEditorViewport.HasPlayInEditorViewport() == false &&
+			inEditorViewport.GetLevelViewportClient().IsPerspective();
+}
+
+void FNetImguiModule::SetWantImguiInEditorViewFN(const FWantImguiInEditorViewFN& callback)
+{
+	WantImguiInEditorViewFN = callback;
+}
+
+bool FNetImguiModule::WantImguiInView(const SLevelViewport* inEditorViewport)const
+{
+	if( inEditorViewport ){
+		return WantImguiInEditorViewFN	? WantImguiInEditorViewFN(*inEditorViewport)
+										: DefaultWantImguiInEditorView(*inEditorViewport);
+	}
+	return false;
+}
 #define LOCTEXT_NAMESPACE "FNetImguiModule"
 IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 #undef LOCTEXT_NAMESPACE

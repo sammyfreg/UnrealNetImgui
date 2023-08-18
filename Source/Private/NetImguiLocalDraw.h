@@ -5,48 +5,30 @@
 
 #if NETIMGUI_LOCALDRAW_ENABLED || 1
 #include "CoreMinimal.h"
-#include "Debug/DebugDrawService.h"
-#include "Engine/Canvas.h"
-#include "Slate/Public/Framework/Application/IInputProcessor.h"
-#include "InputCoreTypes.h" // FKey
-#include "RendererInterface.h" //SF
-#include "Containers/DynamicRHIResourceArray.h" //SF
+#include "Containers/ResourceArray.h" // FResourceBulkDataInterface
+#include "RHIFwd.h" // FTextureRHIRef
+#include "Framework/Application/IInputProcessor.h"
+#include "LocalSupport/NetImguiInput.h"
+#include "LocalSupport/NetImguiWidget.h"
 
+extern TMap<FKey, ImGuiKey> GUnrealKeyToImguiMap;
 
-class FNetImguiInputProcessor : public IInputProcessor
+inline ImGuiKey UnrealToImguiKey(FKey key) { 
+	const ImGuiKey* imguiKey = GUnrealKeyToImguiMap.Find(key); 
+	return imguiKey ? *imguiKey : ImGuiKey_None;
+}
+
+inline int UnrealToImguiMouseButton(FKey key) {
+	ImGuiKey mouseKey = UnrealToImguiKey(key);
+	return mouseKey != ImGuiKey_None ? (int)mouseKey - (int)ImGuiKey_MouseLeft : -1;
+}
+
+class ScopedContext
 {
 public:
-	FNetImguiInputProcessor(class NetImguiLocalDrawSupport* owner);
-	//virtual ~FNetImguiInputProcessor(){}
-	//virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
-	//virtual bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
-	//virtual bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) { return false; }
-	//virtual bool HandleMotionDetectedEvent(FSlateApplication& SlateApp, const FMotionEvent& MotionEvent) { return false; };
-	//virtual bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent) { return false; }
-	virtual const TCHAR* GetDebugName() const { return TEXT("NetImguiInput"); }
-
-	virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor);
-	virtual bool HandleMouseButtonDownEvent( FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
-	virtual bool HandleMouseButtonUpEvent( FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
-	virtual bool HandleMouseButtonDoubleClickEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
-	virtual bool HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp, const FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent);
-	
-	inline ImGuiKey UnrealToImguiKey(FKey key)const { 
-		const ImGuiKey* imguiKey = UnrealKeyToImguiMap.Find(key); 
-		return imguiKey ? *imguiKey : ImGuiKey_None;
-	}
-	inline int UnrealToImguiMouseButton(FKey key)const {
-		ImGuiKey mouseKey = UnrealToImguiKey(key);
-		return mouseKey != ImGuiKey_None ? (int)mouseKey - (int)ImGuiKey_MouseLeft : -1;
-	}
-
-protected:
-	//bool HandleKey(const FKeyEvent& InKeyEvent, bool InKeyDown);
-	bool HandleMouse(const FPointerEvent& InMouseEvent, bool InMouseDown);
-	class NetImguiLocalDrawSupport* Owner = nullptr;
-	uint32 PassThroughMouseMask = 0;
-	TMap<FKey, ImGuiKey> UnrealKeyToImguiMap;
-	EMouseCursor::Type MouseCursorOverride;
+	ScopedContext(ImGuiContext* scopedContext) : SavedContext(ImGui::GetCurrentContext()) { ImGui::SetCurrentContext(scopedContext); }
+	~ScopedContext() { ImGui::SetCurrentContext(SavedContext); }
+	ImGuiContext* SavedContext;
 };
 
 class NetImguiLocalDrawSupport
@@ -70,20 +52,18 @@ private:
 	};
 
 	void CreateFontTexture(FRHICommandListImmediate& RHICmdList);
-	void AddWidgetToViewport();
-	void AddWidgetToViewport(class UGameViewportClient* gameViewport);
-	void AddWidgetToViewport(class SLevelViewport* editorViewport);
+public://SF TEMP
+	TSharedPtr<SNetImguiWidget>* GetOrCreateNetImguiWidget(const FName& inClientName, bool isEditorViewport, bool inAutoCreate);
+private:
+	FTextureRHIRef 	FontTexture;
+	FTextureRHIRef 	BlackTexture; //SF TODO move to render file?
+	FFontBulkData 	FontTextureData;
 	
-	class UGameViewportClient* GameViewport; //SF REMOVE ME
-	FTextureRHIRef 			FontTexture;
-	FTextureRHIRef 			BlackTexture;
-	FFontBulkData 			FontTextureData;
+protected:
 	
-	
-public: //SF TEMP cleanup...
-	TSharedPtr<FNetImguiInputProcessor> 			InputProcessor;
-	TMap<void*, TSharedPtr<class SNetImguiWidget>> 	WidgetsMap;
-	TSharedPtr<class SNetImguiWidget> FocusedWidget;
+	TMap<FName, TSharedPtr<SNetImguiWidget>> 	WidgetsMap;
+	TMap<FKey, ImGuiKey> 						UnrealKeyToImguiMap;
+	TSharedPtr<IInputProcessor>					InputProcessor;
 };
 #else
 
@@ -93,6 +73,7 @@ class NetImguiLocalDrawSupport
 public:
 	void Initialize(){};	
 	void Terminate(){};
+    void Update(){};
 	void InterceptInput(){};
 };
 
