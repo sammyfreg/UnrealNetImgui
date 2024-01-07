@@ -169,6 +169,15 @@ void AMyImGuiActor::Tick(float DeltaTime)
 #endif
 }
 ```
+# Release notes 1.12
+ - Updated to [Dear ImGui 1.90.0](https://github.com/ocornut/imgui/releases/tag/v1.90) (docking branch)
+ - Updated to [NetImgui 1.10](https://github.com/sammyfreg/netImgui/releases/tag/v1.10.0)
+   - Now support text Copy/Paste between Client and Server
+   - Now support monitor DPI (increase font size on high resolution monitor)
+   - Fixed fast typing dropping some characters
+   
+# Release notes 1.11
+
 # Release notes 1.10
  - Updated to [Dear ImGui 1.89.5](https://github.com/ocornut/imgui/releases/tag/v1.89.5) (docking branch)
  - Updated to [NetImgui 1.19](https://github.com/sammyfreg/netImgui/releases/tag/v1.9.0)
