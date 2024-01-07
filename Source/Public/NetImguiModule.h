@@ -47,6 +47,9 @@
 
 // List of defines to easily use Icons available in 'Google's Material Design Icons'
 // For list of available icons, see: https://fonts.google.com/icons
+// Note:	The Kenney Game icons unicode range overlap the Google Material Design
+//			unicode range, so some material design icons won't be usable when 
+//			both are enabled
 #if NETIMGUI_FONT_ICON_MATERIALDESIGN
 	#include "Fonts/IconFontCppHeader/IconsMaterialDesign.h"
 #endif
@@ -110,7 +113,7 @@ public:
 		//... Feel free to also add/remove font size for your convenience
 		_Count,
 	};
-
+	virtual void					BuildFont(float fontDPIScale);
 	virtual void					SetDefaultFont(eFont font);
 	virtual void					PushFont(eFont font);
 	virtual void					PopFont();
@@ -146,7 +149,7 @@ public:
 		}
 		return false;
 	}
-
+		
 	/**
 	* Add your Dear ImGui drawing callbacks to this emitter
 	** Note: If NetImgui module is reloaded, you will lose your callbacks
@@ -155,7 +158,9 @@ public:
 
 protected:	
 	virtual bool					isDrawing()const;
-	void							Update();
+	void							Update();	
+
+	float							mFontDPIScale = 0.f;
 	FDelegateHandle					mUpdateCallback;
 	ImGuiContext*					mpContext = nullptr;
 #if NETIMGUI_IMPLOT_ENABLED

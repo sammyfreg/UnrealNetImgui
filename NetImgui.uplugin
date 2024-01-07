@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
-	"Version": 11,
-	"VersionName": "1.11",
+	"Version": 12,
+	"VersionName": "1.12",
 	"FriendlyName": "Unreal NetImgui",
 	"Description": "Plugin exposing Dear ImGui library for drawing 2D menus. These menus are displayed and controlled from an external application but processed from this engine code.",
 	"Category": "2D",
