@@ -4,7 +4,7 @@
 
 #include "ImUnrealCommand.h"
 
-#if IMGUI_UNREAL_COMMAND_ENABLED
+#if IM_UNREAL_COMMAND_ENABLED
 
 #include "HAL/IConsoleManager.h" 
 #include "Features/IModularFeatures.h"
@@ -657,4 +657,4 @@ bool& IsVisible(CommandContext* pCmdContext)
 
 #undef LOCTEXT_NAMESPACE
 
-#endif // IMGUI_UNREAL_COMMAND_ENABLED
+#endif // IM_UNREAL_COMMAND_ENABLED

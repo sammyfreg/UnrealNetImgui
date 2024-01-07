@@ -15,17 +15,20 @@
 
 
 //------------------------------------------------------------------------------
-# include "imgui.h"
+# include <imgui.h>
 # include <cstdint> // std::uintXX_t
 # include <utility> // std::move
 
-#ifndef IM_NODE_EDITOR_API
-#define IM_NODE_EDITOR_API
-#endif
 
 //------------------------------------------------------------------------------
-# define IMGUI_NODE_EDITOR_VERSION      "0.9.2"
-# define IMGUI_NODE_EDITOR_VERSION_NUM  000902
+# define IMGUI_NODE_EDITOR_VERSION      "0.9.4"
+# define IMGUI_NODE_EDITOR_VERSION_NUM  000904
+
+
+//------------------------------------------------------------------------------
+#ifndef IMGUI_NODE_EDITOR_API
+#define IMGUI_NODE_EDITOR_API
+#endif
 
 
 //------------------------------------------------------------------------------
@@ -102,6 +105,8 @@ struct Config
     int                     SelectButtonIndex;      // Mouse button index select action will react to (0-left, 1-right, 2-middle)
     int                     NavigateButtonIndex;    // Mouse button index navigate action will react to (0-left, 1-right, 2-middle)
     int                     ContextMenuButtonIndex; // Mouse button index context menu action will react to (0-left, 1-right, 2-middle)
+    bool                    EnableSmoothZoom;
+    float                   SmoothZoomPower;
 
     Config()
         : SettingsFile("NodeEditor.json")
@@ -118,6 +123,12 @@ struct Config
         , SelectButtonIndex(0)
         , NavigateButtonIndex(1)
         , ContextMenuButtonIndex(1)
+        , EnableSmoothZoom(false)
+# ifdef __APPLE__
+        , SmoothZoomPower(1.1f)
+# else
+        , SmoothZoomPower(1.3f)
+# endif
     {
     }
 };
@@ -176,6 +187,8 @@ enum StyleVar
     StyleVar_GroupBorderWidth,
     StyleVar_HighlightConnectedLinks,
     StyleVar_SnapLinkToPinDir,
+    StyleVar_HoveredNodeBorderOffset,
+    StyleVar_SelectedNodeBorderOffset,
 
     StyleVar_Count
 };
@@ -186,7 +199,9 @@ struct Style
     float   NodeRounding;
     float   NodeBorderWidth;
     float   HoveredNodeBorderWidth;
+    float   HoverNodeBorderOffset;
     float   SelectedNodeBorderWidth;
+    float   SelectedNodeBorderOffset;
     float   PinRounding;
     float   PinBorderWidth;
     float   LinkStrength;
@@ -211,35 +226,37 @@ struct Style
 
     Style()
     {
-        NodePadding             = ImVec4(8, 8, 8, 8);
-        NodeRounding            = 12.0f;
-        NodeBorderWidth         = 1.5f;
-        HoveredNodeBorderWidth  = 3.5f;
-        SelectedNodeBorderWidth = 3.5f;
-        PinRounding             = 4.0f;
-        PinBorderWidth          = 0.0f;
-        LinkStrength            = 100.0f;
-        SourceDirection         = ImVec2(1.0f, 0.0f);
-        TargetDirection         = ImVec2(-1.0f, 0.0f);
-        ScrollDuration          = 0.35f;
-        FlowMarkerDistance      = 30.0f;
-        FlowSpeed               = 150.0f;
-        FlowDuration            = 2.0f;
-        PivotAlignment          = ImVec2(0.5f, 0.5f);
-        PivotSize               = ImVec2(0.0f, 0.0f);
-        PivotScale              = ImVec2(1, 1);
+        NodePadding              = ImVec4(8, 8, 8, 8);
+        NodeRounding             = 12.0f;
+        NodeBorderWidth          = 1.5f;
+        HoveredNodeBorderWidth   = 3.5f;
+        HoverNodeBorderOffset    = 0.0f;
+        SelectedNodeBorderWidth  = 3.5f;
+        SelectedNodeBorderOffset = 0.0f;
+        PinRounding              = 4.0f;
+        PinBorderWidth           = 0.0f;
+        LinkStrength             = 100.0f;
+        SourceDirection          = ImVec2(1.0f, 0.0f);
+        TargetDirection          = ImVec2(-1.0f, 0.0f);
+        ScrollDuration           = 0.35f;
+        FlowMarkerDistance       = 30.0f;
+        FlowSpeed                = 150.0f;
+        FlowDuration             = 2.0f;
+        PivotAlignment           = ImVec2(0.5f, 0.5f);
+        PivotSize                = ImVec2(0.0f, 0.0f);
+        PivotScale               = ImVec2(1, 1);
 #if IMGUI_VERSION_NUM > 18101
-        PinCorners              = ImDrawFlags_RoundCornersAll;
+        PinCorners               = ImDrawFlags_RoundCornersAll;
 #else
-        PinCorners              = ImDrawCornerFlags_All;
+        PinCorners               = ImDrawCornerFlags_All;
 #endif
-        PinRadius               = 0.0f;
-        PinArrowSize            = 0.0f;
-        PinArrowWidth           = 0.0f;
-        GroupRounding           = 6.0f;
-        GroupBorderWidth        = 1.0f;
-        HighlightConnectedLinks = 0.0f;
-        SnapLinkToPinDir        = 0.0f;
+        PinRadius                = 0.0f;
+        PinArrowSize             = 0.0f;
+        PinArrowWidth            = 0.0f;
+        GroupRounding            = 6.0f;
+        GroupBorderWidth         = 1.0f;
+        HighlightConnectedLinks  = 0.0f;
+        SnapLinkToPinDir         = 0.0f;
 
         Colors[StyleColor_Bg]                 = ImColor( 60,  60,  70, 200);
         Colors[StyleColor_Grid]               = ImColor(120, 120, 120,  40);
@@ -269,150 +286,150 @@ struct EditorContext;
 
 
 //------------------------------------------------------------------------------
-IM_NODE_EDITOR_API void SetCurrentEditor(EditorContext* ctx);
-IM_NODE_EDITOR_API EditorContext* GetCurrentEditor();
-IM_NODE_EDITOR_API EditorContext* CreateEditor(const Config* config = nullptr);
-IM_NODE_EDITOR_API void DestroyEditor(EditorContext* ctx);
-IM_NODE_EDITOR_API const Config& GetConfig(EditorContext* ctx = nullptr);
+IMGUI_NODE_EDITOR_API void SetCurrentEditor(EditorContext* ctx);
+IMGUI_NODE_EDITOR_API EditorContext* GetCurrentEditor();
+IMGUI_NODE_EDITOR_API EditorContext* CreateEditor(const Config* config = nullptr);
+IMGUI_NODE_EDITOR_API void DestroyEditor(EditorContext* ctx);
+IMGUI_NODE_EDITOR_API const Config& GetConfig(EditorContext* ctx = nullptr);
 
-IM_NODE_EDITOR_API Style& GetStyle();
-IM_NODE_EDITOR_API const char* GetStyleColorName(StyleColor colorIndex);
+IMGUI_NODE_EDITOR_API Style& GetStyle();
+IMGUI_NODE_EDITOR_API const char* GetStyleColorName(StyleColor colorIndex);
 
-IM_NODE_EDITOR_API void PushStyleColor(StyleColor colorIndex, const ImVec4& color);
-IM_NODE_EDITOR_API void PopStyleColor(int count = 1);
+IMGUI_NODE_EDITOR_API void PushStyleColor(StyleColor colorIndex, const ImVec4& color);
+IMGUI_NODE_EDITOR_API void PopStyleColor(int count = 1);
 
-IM_NODE_EDITOR_API void PushStyleVar(StyleVar varIndex, float value);
-IM_NODE_EDITOR_API void PushStyleVar(StyleVar varIndex, const ImVec2& value);
-IM_NODE_EDITOR_API void PushStyleVar(StyleVar varIndex, const ImVec4& value);
-IM_NODE_EDITOR_API void PopStyleVar(int count = 1);
+IMGUI_NODE_EDITOR_API void PushStyleVar(StyleVar varIndex, float value);
+IMGUI_NODE_EDITOR_API void PushStyleVar(StyleVar varIndex, const ImVec2& value);
+IMGUI_NODE_EDITOR_API void PushStyleVar(StyleVar varIndex, const ImVec4& value);
+IMGUI_NODE_EDITOR_API void PopStyleVar(int count = 1);
 
-IM_NODE_EDITOR_API void Begin(const char* id, const ImVec2& size = ImVec2(0, 0));
-IM_NODE_EDITOR_API void End();
+IMGUI_NODE_EDITOR_API void Begin(const char* id, const ImVec2& size = ImVec2(0, 0));
+IMGUI_NODE_EDITOR_API void End();
 
-IM_NODE_EDITOR_API void BeginNode(NodeId id);
-IM_NODE_EDITOR_API void BeginPin(PinId id, PinKind kind);
-IM_NODE_EDITOR_API void PinRect(const ImVec2& a, const ImVec2& b);
-IM_NODE_EDITOR_API void PinPivotRect(const ImVec2& a, const ImVec2& b);
-IM_NODE_EDITOR_API void PinPivotSize(const ImVec2& size);
-IM_NODE_EDITOR_API void PinPivotScale(const ImVec2& scale);
-IM_NODE_EDITOR_API void PinPivotAlignment(const ImVec2& alignment);
-IM_NODE_EDITOR_API void EndPin();
-IM_NODE_EDITOR_API void Group(const ImVec2& size);
-IM_NODE_EDITOR_API void EndNode();
+IMGUI_NODE_EDITOR_API void BeginNode(NodeId id);
+IMGUI_NODE_EDITOR_API void BeginPin(PinId id, PinKind kind);
+IMGUI_NODE_EDITOR_API void PinRect(const ImVec2& a, const ImVec2& b);
+IMGUI_NODE_EDITOR_API void PinPivotRect(const ImVec2& a, const ImVec2& b);
+IMGUI_NODE_EDITOR_API void PinPivotSize(const ImVec2& size);
+IMGUI_NODE_EDITOR_API void PinPivotScale(const ImVec2& scale);
+IMGUI_NODE_EDITOR_API void PinPivotAlignment(const ImVec2& alignment);
+IMGUI_NODE_EDITOR_API void EndPin();
+IMGUI_NODE_EDITOR_API void Group(const ImVec2& size);
+IMGUI_NODE_EDITOR_API void EndNode();
 
-IM_NODE_EDITOR_API bool BeginGroupHint(NodeId nodeId);
-IM_NODE_EDITOR_API ImVec2 GetGroupMin();
-IM_NODE_EDITOR_API ImVec2 GetGroupMax();
-IM_NODE_EDITOR_API ImDrawList* GetHintForegroundDrawList();
-IM_NODE_EDITOR_API ImDrawList* GetHintBackgroundDrawList();
-IM_NODE_EDITOR_API void EndGroupHint();
+IMGUI_NODE_EDITOR_API bool BeginGroupHint(NodeId nodeId);
+IMGUI_NODE_EDITOR_API ImVec2 GetGroupMin();
+IMGUI_NODE_EDITOR_API ImVec2 GetGroupMax();
+IMGUI_NODE_EDITOR_API ImDrawList* GetHintForegroundDrawList();
+IMGUI_NODE_EDITOR_API ImDrawList* GetHintBackgroundDrawList();
+IMGUI_NODE_EDITOR_API void EndGroupHint();
 
 // TODO: Add a way to manage node background channels
-IM_NODE_EDITOR_API ImDrawList* GetNodeBackgroundDrawList(NodeId nodeId);
+IMGUI_NODE_EDITOR_API ImDrawList* GetNodeBackgroundDrawList(NodeId nodeId);
 
-IM_NODE_EDITOR_API bool Link(LinkId id, PinId startPinId, PinId endPinId, const ImVec4& color = ImVec4(1, 1, 1, 1), float thickness = 1.0f);
+IMGUI_NODE_EDITOR_API bool Link(LinkId id, PinId startPinId, PinId endPinId, const ImVec4& color = ImVec4(1, 1, 1, 1), float thickness = 1.0f);
 
-IM_NODE_EDITOR_API void Flow(LinkId linkId, FlowDirection direction = FlowDirection::Forward);
+IMGUI_NODE_EDITOR_API void Flow(LinkId linkId, FlowDirection direction = FlowDirection::Forward);
 
-IM_NODE_EDITOR_API bool BeginCreate(const ImVec4& color = ImVec4(1, 1, 1, 1), float thickness = 1.0f);
-IM_NODE_EDITOR_API bool QueryNewLink(PinId* startId, PinId* endId);
-IM_NODE_EDITOR_API bool QueryNewLink(PinId* startId, PinId* endId, const ImVec4& color, float thickness = 1.0f);
-IM_NODE_EDITOR_API bool QueryNewNode(PinId* pinId);
-IM_NODE_EDITOR_API bool QueryNewNode(PinId* pinId, const ImVec4& color, float thickness = 1.0f);
-IM_NODE_EDITOR_API bool AcceptNewItem();
-IM_NODE_EDITOR_API bool AcceptNewItem(const ImVec4& color, float thickness = 1.0f);
-IM_NODE_EDITOR_API void RejectNewItem();
-IM_NODE_EDITOR_API void RejectNewItem(const ImVec4& color, float thickness = 1.0f);
-IM_NODE_EDITOR_API void EndCreate();
+IMGUI_NODE_EDITOR_API bool BeginCreate(const ImVec4& color = ImVec4(1, 1, 1, 1), float thickness = 1.0f);
+IMGUI_NODE_EDITOR_API bool QueryNewLink(PinId* startId, PinId* endId);
+IMGUI_NODE_EDITOR_API bool QueryNewLink(PinId* startId, PinId* endId, const ImVec4& color, float thickness = 1.0f);
+IMGUI_NODE_EDITOR_API bool QueryNewNode(PinId* pinId);
+IMGUI_NODE_EDITOR_API bool QueryNewNode(PinId* pinId, const ImVec4& color, float thickness = 1.0f);
+IMGUI_NODE_EDITOR_API bool AcceptNewItem();
+IMGUI_NODE_EDITOR_API bool AcceptNewItem(const ImVec4& color, float thickness = 1.0f);
+IMGUI_NODE_EDITOR_API void RejectNewItem();
+IMGUI_NODE_EDITOR_API void RejectNewItem(const ImVec4& color, float thickness = 1.0f);
+IMGUI_NODE_EDITOR_API void EndCreate();
 
-IM_NODE_EDITOR_API bool BeginDelete();
-IM_NODE_EDITOR_API bool QueryDeletedLink(LinkId* linkId, PinId* startId = nullptr, PinId* endId = nullptr);
-IM_NODE_EDITOR_API bool QueryDeletedNode(NodeId* nodeId);
-IM_NODE_EDITOR_API bool AcceptDeletedItem(bool deleteDependencies = true);
-IM_NODE_EDITOR_API void RejectDeletedItem();
-IM_NODE_EDITOR_API void EndDelete();
+IMGUI_NODE_EDITOR_API bool BeginDelete();
+IMGUI_NODE_EDITOR_API bool QueryDeletedLink(LinkId* linkId, PinId* startId = nullptr, PinId* endId = nullptr);
+IMGUI_NODE_EDITOR_API bool QueryDeletedNode(NodeId* nodeId);
+IMGUI_NODE_EDITOR_API bool AcceptDeletedItem(bool deleteDependencies = true);
+IMGUI_NODE_EDITOR_API void RejectDeletedItem();
+IMGUI_NODE_EDITOR_API void EndDelete();
 
-IM_NODE_EDITOR_API void SetNodePosition(NodeId nodeId, const ImVec2& editorPosition);
-IM_NODE_EDITOR_API void SetGroupSize(NodeId nodeId, const ImVec2& size);
-IM_NODE_EDITOR_API ImVec2 GetNodePosition(NodeId nodeId);
-IM_NODE_EDITOR_API ImVec2 GetNodeSize(NodeId nodeId);
-IM_NODE_EDITOR_API void CenterNodeOnScreen(NodeId nodeId);
-IM_NODE_EDITOR_API void SetNodeZPosition(NodeId nodeId, float z); // Sets node z position, nodes with higher value are drawn over nodes with lower value
-IM_NODE_EDITOR_API float GetNodeZPosition(NodeId nodeId); // Returns node z position, defaults is 0.0f
+IMGUI_NODE_EDITOR_API void SetNodePosition(NodeId nodeId, const ImVec2& editorPosition);
+IMGUI_NODE_EDITOR_API void SetGroupSize(NodeId nodeId, const ImVec2& size);
+IMGUI_NODE_EDITOR_API ImVec2 GetNodePosition(NodeId nodeId);
+IMGUI_NODE_EDITOR_API ImVec2 GetNodeSize(NodeId nodeId);
+IMGUI_NODE_EDITOR_API void CenterNodeOnScreen(NodeId nodeId);
+IMGUI_NODE_EDITOR_API void SetNodeZPosition(NodeId nodeId, float z); // Sets node z position, nodes with higher value are drawn over nodes with lower value
+IMGUI_NODE_EDITOR_API float GetNodeZPosition(NodeId nodeId); // Returns node z position, defaults is 0.0f
 
-IM_NODE_EDITOR_API void RestoreNodeState(NodeId nodeId);
+IMGUI_NODE_EDITOR_API void RestoreNodeState(NodeId nodeId);
 
-IM_NODE_EDITOR_API void Suspend();
-IM_NODE_EDITOR_API void Resume();
-IM_NODE_EDITOR_API bool IsSuspended();
+IMGUI_NODE_EDITOR_API void Suspend();
+IMGUI_NODE_EDITOR_API void Resume();
+IMGUI_NODE_EDITOR_API bool IsSuspended();
 
-IM_NODE_EDITOR_API bool IsActive();
+IMGUI_NODE_EDITOR_API bool IsActive();
 
-IM_NODE_EDITOR_API bool HasSelectionChanged();
-IM_NODE_EDITOR_API int  GetSelectedObjectCount();
-IM_NODE_EDITOR_API int  GetSelectedNodes(NodeId* nodes, int size);
-IM_NODE_EDITOR_API int  GetSelectedLinks(LinkId* links, int size);
-IM_NODE_EDITOR_API bool IsNodeSelected(NodeId nodeId);
-IM_NODE_EDITOR_API bool IsLinkSelected(LinkId linkId);
-IM_NODE_EDITOR_API void ClearSelection();
-IM_NODE_EDITOR_API void SelectNode(NodeId nodeId, bool append = false);
-IM_NODE_EDITOR_API void SelectLink(LinkId linkId, bool append = false);
-IM_NODE_EDITOR_API void DeselectNode(NodeId nodeId);
-IM_NODE_EDITOR_API void DeselectLink(LinkId linkId);
+IMGUI_NODE_EDITOR_API bool HasSelectionChanged();
+IMGUI_NODE_EDITOR_API int  GetSelectedObjectCount();
+IMGUI_NODE_EDITOR_API int  GetSelectedNodes(NodeId* nodes, int size);
+IMGUI_NODE_EDITOR_API int  GetSelectedLinks(LinkId* links, int size);
+IMGUI_NODE_EDITOR_API bool IsNodeSelected(NodeId nodeId);
+IMGUI_NODE_EDITOR_API bool IsLinkSelected(LinkId linkId);
+IMGUI_NODE_EDITOR_API void ClearSelection();
+IMGUI_NODE_EDITOR_API void SelectNode(NodeId nodeId, bool append = false);
+IMGUI_NODE_EDITOR_API void SelectLink(LinkId linkId, bool append = false);
+IMGUI_NODE_EDITOR_API void DeselectNode(NodeId nodeId);
+IMGUI_NODE_EDITOR_API void DeselectLink(LinkId linkId);
 
-IM_NODE_EDITOR_API bool DeleteNode(NodeId nodeId);
-IM_NODE_EDITOR_API bool DeleteLink(LinkId linkId);
+IMGUI_NODE_EDITOR_API bool DeleteNode(NodeId nodeId);
+IMGUI_NODE_EDITOR_API bool DeleteLink(LinkId linkId);
 
-IM_NODE_EDITOR_API bool HasAnyLinks(NodeId nodeId); // Returns true if node has any link connected
-IM_NODE_EDITOR_API bool HasAnyLinks(PinId pinId); // Return true if pin has any link connected
-IM_NODE_EDITOR_API int BreakLinks(NodeId nodeId); // Break all links connected to this node
-IM_NODE_EDITOR_API int BreakLinks(PinId pinId); // Break all links connected to this pin
+IMGUI_NODE_EDITOR_API bool HasAnyLinks(NodeId nodeId); // Returns true if node has any link connected
+IMGUI_NODE_EDITOR_API bool HasAnyLinks(PinId pinId); // Return true if pin has any link connected
+IMGUI_NODE_EDITOR_API int BreakLinks(NodeId nodeId); // Break all links connected to this node
+IMGUI_NODE_EDITOR_API int BreakLinks(PinId pinId); // Break all links connected to this pin
 
-IM_NODE_EDITOR_API void NavigateToContent(float duration = -1);
-IM_NODE_EDITOR_API void NavigateToSelection(bool zoomIn = false, float duration = -1);
+IMGUI_NODE_EDITOR_API void NavigateToContent(float duration = -1);
+IMGUI_NODE_EDITOR_API void NavigateToSelection(bool zoomIn = false, float duration = -1);
 
-IM_NODE_EDITOR_API bool ShowNodeContextMenu(NodeId* nodeId);
-IM_NODE_EDITOR_API bool ShowPinContextMenu(PinId* pinId);
-IM_NODE_EDITOR_API bool ShowLinkContextMenu(LinkId* linkId);
-IM_NODE_EDITOR_API bool ShowBackgroundContextMenu();
+IMGUI_NODE_EDITOR_API bool ShowNodeContextMenu(NodeId* nodeId);
+IMGUI_NODE_EDITOR_API bool ShowPinContextMenu(PinId* pinId);
+IMGUI_NODE_EDITOR_API bool ShowLinkContextMenu(LinkId* linkId);
+IMGUI_NODE_EDITOR_API bool ShowBackgroundContextMenu();
 
-IM_NODE_EDITOR_API void EnableShortcuts(bool enable);
-IM_NODE_EDITOR_API bool AreShortcutsEnabled();
+IMGUI_NODE_EDITOR_API void EnableShortcuts(bool enable);
+IMGUI_NODE_EDITOR_API bool AreShortcutsEnabled();
 
-IM_NODE_EDITOR_API bool BeginShortcut();
-IM_NODE_EDITOR_API bool AcceptCut();
-IM_NODE_EDITOR_API bool AcceptCopy();
-IM_NODE_EDITOR_API bool AcceptPaste();
-IM_NODE_EDITOR_API bool AcceptDuplicate();
-IM_NODE_EDITOR_API bool AcceptCreateNode();
-IM_NODE_EDITOR_API int  GetActionContextSize();
-IM_NODE_EDITOR_API int  GetActionContextNodes(NodeId* nodes, int size);
-IM_NODE_EDITOR_API int  GetActionContextLinks(LinkId* links, int size);
-IM_NODE_EDITOR_API void EndShortcut();
+IMGUI_NODE_EDITOR_API bool BeginShortcut();
+IMGUI_NODE_EDITOR_API bool AcceptCut();
+IMGUI_NODE_EDITOR_API bool AcceptCopy();
+IMGUI_NODE_EDITOR_API bool AcceptPaste();
+IMGUI_NODE_EDITOR_API bool AcceptDuplicate();
+IMGUI_NODE_EDITOR_API bool AcceptCreateNode();
+IMGUI_NODE_EDITOR_API int  GetActionContextSize();
+IMGUI_NODE_EDITOR_API int  GetActionContextNodes(NodeId* nodes, int size);
+IMGUI_NODE_EDITOR_API int  GetActionContextLinks(LinkId* links, int size);
+IMGUI_NODE_EDITOR_API void EndShortcut();
 
-IM_NODE_EDITOR_API float GetCurrentZoom();
+IMGUI_NODE_EDITOR_API float GetCurrentZoom();
 
-IM_NODE_EDITOR_API NodeId GetHoveredNode();
-IM_NODE_EDITOR_API PinId GetHoveredPin();
-IM_NODE_EDITOR_API LinkId GetHoveredLink();
-IM_NODE_EDITOR_API NodeId GetDoubleClickedNode();
-IM_NODE_EDITOR_API PinId GetDoubleClickedPin();
-IM_NODE_EDITOR_API LinkId GetDoubleClickedLink();
-IM_NODE_EDITOR_API bool IsBackgroundClicked();
-IM_NODE_EDITOR_API bool IsBackgroundDoubleClicked();
-IM_NODE_EDITOR_API ImGuiMouseButton GetBackgroundClickButtonIndex(); // -1 if none
-IM_NODE_EDITOR_API ImGuiMouseButton GetBackgroundDoubleClickButtonIndex(); // -1 if none
+IMGUI_NODE_EDITOR_API NodeId GetHoveredNode();
+IMGUI_NODE_EDITOR_API PinId GetHoveredPin();
+IMGUI_NODE_EDITOR_API LinkId GetHoveredLink();
+IMGUI_NODE_EDITOR_API NodeId GetDoubleClickedNode();
+IMGUI_NODE_EDITOR_API PinId GetDoubleClickedPin();
+IMGUI_NODE_EDITOR_API LinkId GetDoubleClickedLink();
+IMGUI_NODE_EDITOR_API bool IsBackgroundClicked();
+IMGUI_NODE_EDITOR_API bool IsBackgroundDoubleClicked();
+IMGUI_NODE_EDITOR_API ImGuiMouseButton GetBackgroundClickButtonIndex(); // -1 if none
+IMGUI_NODE_EDITOR_API ImGuiMouseButton GetBackgroundDoubleClickButtonIndex(); // -1 if none
 
-IM_NODE_EDITOR_API bool GetLinkPins(LinkId linkId, PinId* startPinId, PinId* endPinId); // pass nullptr if particular pin do not interest you
+IMGUI_NODE_EDITOR_API bool GetLinkPins(LinkId linkId, PinId* startPinId, PinId* endPinId); // pass nullptr if particular pin do not interest you
 
-IM_NODE_EDITOR_API bool PinHadAnyLinks(PinId pinId);
+IMGUI_NODE_EDITOR_API bool PinHadAnyLinks(PinId pinId);
 
-IM_NODE_EDITOR_API ImVec2 GetScreenSize();
-IM_NODE_EDITOR_API ImVec2 ScreenToCanvas(const ImVec2& pos);
-IM_NODE_EDITOR_API ImVec2 CanvasToScreen(const ImVec2& pos);
+IMGUI_NODE_EDITOR_API ImVec2 GetScreenSize();
+IMGUI_NODE_EDITOR_API ImVec2 ScreenToCanvas(const ImVec2& pos);
+IMGUI_NODE_EDITOR_API ImVec2 CanvasToScreen(const ImVec2& pos);
 
-IM_NODE_EDITOR_API int GetNodeCount();                                // Returns number of submitted nodes since Begin() call
-IM_NODE_EDITOR_API int GetOrderedNodeIds(NodeId* nodes, int size);    // Fills an array with node id's in order they're drawn; up to 'size` elements are set. Returns actual size of filled id's.
+IMGUI_NODE_EDITOR_API int GetNodeCount();                                // Returns number of submitted nodes since Begin() call
+IMGUI_NODE_EDITOR_API int GetOrderedNodeIds(NodeId* nodes, int size);    // Fills an array with node id's in order they're drawn; up to 'size` elements are set. Returns actual size of filled id's.
 
 
 

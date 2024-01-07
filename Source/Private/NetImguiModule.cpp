@@ -48,9 +48,21 @@
 //=================================================================================================
 #include "ImUnrealCommand.h"
 #include "Sample\NetImguiDemoNodeEditor.h"
-#if IMGUI_UNREAL_COMMAND_ENABLED
+#if IM_UNREAL_COMMAND_ENABLED
 static ImUnrealCommand::CommandContext* spImUnrealCommandContext = nullptr;
 #endif
+
+//=================================================================================================
+// FontCreationCallback
+//-------------------------------------------------------------------------------------------------
+// 
+//=================================================================================================
+void FontCreationCallback(float PreviousDPIScale, float NewDPIScale)
+{
+	IM_UNUSED(PreviousDPIScale);
+	IM_UNUSED(NewDPIScale);
+	FNetImguiModule::Get().BuildFont(NewDPIScale);
+}
 
 //=================================================================================================
 // If engine was launched with "-netimguiserver [hostname]", try connecting directly 
@@ -85,7 +97,7 @@ void TryConnectingToServer(const FString& HostnameAndPort)
 			hostPort = (hostPort == 0) ? NETIMGUI_CONNECTPORT : hostPort;	// Restore Port Number if integer conversion failed
 		}
 	}
-	NetImgui::ConnectToApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), TCHAR_TO_ANSI(*hostName), hostPort);
+	NetImgui::ConnectToApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), TCHAR_TO_ANSI(*hostName), hostPort, nullptr, FontCreationCallback);
 	
 }
 
@@ -118,7 +130,7 @@ void TryListeningForServer(const FString& ListeningPort)
 								FApp::IsGame()				? NETIMGUI_LISTENPORT_GAME 
 															: NETIMGUI_LISTENPORT_EDITOR;
 		}
-		NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), listenPort);
+		NetImgui::ConnectFromApp(TCHAR_TO_ANSI(sessionName.GetCharArray().GetData()), listenPort, nullptr, FontCreationCallback);
 	}
 }
 
@@ -132,23 +144,25 @@ void TryListeningForServer(const FString& ListeningPort)
 // generating them. More info can be found here :
 //		https://github.com/ocornut/imgui/blob/master/docs/FONTS.md
 //=================================================================================================
-void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_t FontDataSize, bool extraIconGlyphs, bool appendJapanese=false, const ImWchar* pGlyphRange=nullptr )
+void AddFontGroup(FString name, float pxSize, float dpiScale, const uint32_t* pFontData, uint32_t FontDataSize, bool extraIconGlyphs, bool appendJapanese=false, const ImWchar* pGlyphRange=nullptr )
 {
 	ImFontConfig Config;
+	dpiScale = FMath::Min(2.f, dpiScale); // Prevent increasing Font Atlas size too much
+
 #if NETIMGUI_FREETYPE_ENABLED
 	Config.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LightHinting;	// Without this, kanji character looks wrong in smaller font size
 #endif	
-
+	float pxSizeScaled		= pxSize * dpiScale;
 	ImFontAtlas* pFontAtlas = ImGui::GetIO().Fonts;
 	name += FString::Printf(TEXT(" (%ipx)"), static_cast<int>(pxSize));
 	FPlatformString::Strcpy(Config.Name, sizeof(Config.Name), TCHAR_TO_UTF8(name.GetCharArray().GetData()));
-	pFontAtlas->AddFontFromMemoryCompressedTTF(pFontData, FontDataSize, pxSize, &Config, pGlyphRange);
+	pFontAtlas->AddFontFromMemoryCompressedTTF(pFontData, FontDataSize, pxSizeScaled, &Config, pGlyphRange);
 	
 	Config.MergeMode = true;
 #if NETIMGUI_FONT_JAPANESE
 	if (appendJapanese) {
 		Config.RasterizerMultiply = 1.5f;		// Boost kanji color intensity slightly, making them more readable
-		pFontAtlas->AddFontFromMemoryCompressedTTF(IPAexMincho_compressed_data,	IPAexMincho_compressed_size, pxSize, &Config, pFontAtlas->GetGlyphRangesJapanese());
+		pFontAtlas->AddFontFromMemoryCompressedTTF(IPAexMincho_compressed_data,	IPAexMincho_compressed_size, pxSizeScaled, &Config, pFontAtlas->GetGlyphRangesJapanese());
 		Config.RasterizerMultiply = 1.f;
 	}
 #endif
@@ -158,18 +172,18 @@ void AddFontGroup(FString name, float pxSize, const uint32_t* pFontData, uint32_
 
 #if NETIMGUI_FONT_ICON_GAMEKENNEY
 		static const ImWchar iconKenney_ranges[] = { ICON_MIN_KI, ICON_MAX_KI, 0 };
-		pFontAtlas->AddFontFromMemoryCompressedTTF(KenneyIcon_compressed_data, KenneyIcon_compressed_size, pxSize, &Config, iconKenney_ranges);
+		pFontAtlas->AddFontFromMemoryCompressedTTF(KenneyIcon_compressed_data, KenneyIcon_compressed_size, pxSizeScaled, &Config, iconKenney_ranges);
 #endif
 #if NETIMGUI_FONT_ICON_AWESOME
 		static const ImWchar iconFontAwesome_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 		static const ImWchar iconFontAwesomeBrands_ranges[] = { ICON_MIN_FAB, ICON_MAX_FAB, 0 };
-		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_solid_900_compressed_data, fa_solid_900_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
-		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_regular_400_compressed_data, fa_regular_400_compressed_size, pxSize, &Config, iconFontAwesome_ranges);
-		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_brands_400_compressed_data, fa_brands_400_compressed_size, pxSize, &Config, iconFontAwesomeBrands_ranges);
+		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_solid_900_compressed_data, fa_solid_900_compressed_size, pxSizeScaled, &Config, iconFontAwesome_ranges);
+		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_regular_400_compressed_data, fa_regular_400_compressed_size, pxSizeScaled, &Config, iconFontAwesome_ranges);
+		pFontAtlas->AddFontFromMemoryCompressedTTF(fa_brands_400_compressed_data, fa_brands_400_compressed_size, pxSizeScaled, &Config, iconFontAwesomeBrands_ranges);
 #endif
 #if NETIMGUI_FONT_ICON_MATERIALDESIGN
 		static const ImWchar iconMaterialDesign_ranges[] = { ICON_MIN_MD, ICON_MAX_MD, 0 };
-		pFontAtlas->AddFontFromMemoryCompressedTTF(MaterialIcons_Regular_compressed_data, MaterialIcons_Regular_compressed_size, pxSize, &Config, iconMaterialDesign_ranges);
+		pFontAtlas->AddFontFromMemoryCompressedTTF(MaterialIcons_Regular_compressed_data, MaterialIcons_Regular_compressed_size, pxSizeScaled, &Config, iconMaterialDesign_ranges);
 #endif
 	}
 }
@@ -279,7 +293,7 @@ void FNetImguiModule::Update()
 			// Display a 'Unreal Console Command' menu entry in MainMenu bar, and the 
 			// 'Unreal Console command' window itself when requested
 			//----------------------------------------------------------------------------
-		#if IMGUI_UNREAL_COMMAND_ENABLED
+		#if IM_UNREAL_COMMAND_ENABLED
 			if (ImGui::BeginMainMenuBar()) {
 				if( ImGui::BeginMenu("NetImgui") ){
 					ImGui::MenuItem("Unreal-Commands", nullptr, &ImUnrealCommand::IsVisible(spImUnrealCommandContext) );
@@ -334,6 +348,73 @@ void FNetImguiModule::Update()
 			OnDrawImgui.Broadcast();
 		}
 	}
+}
+
+//=================================================================================================
+// BuildFont
+//-------------------------------------------------------------------------------------------------
+// Regenerate the Font Atlas when not already created or the DPI scaled changed
+//=================================================================================================
+void FNetImguiModule::BuildFont(float fontDPIScale)
+{
+	ImGuiContext* savedContext	= ImGui::GetCurrentContext();
+	ImGui::SetCurrentContext(mpContext);
+	ImFontAtlas* fontAtlas		= ImGui::GetIO().Fonts;
+	bool needBuild				= mFontDPIScale <= 0.f || !fontAtlas->IsBuilt();
+
+	// Detect if the new DPI change the pixel size of any of our font
+	for (int i(0); !needBuild && i < fontAtlas->Fonts.size(); ++i) {
+		int pixelSizeNative	= static_cast<int>(fontAtlas->Fonts[i]->FontSize / mFontDPIScale);
+		int pixelSizeNeeded	= static_cast<int>(static_cast<float>(pixelSizeNative) * fontDPIScale);
+		needBuild			= pixelSizeNeeded != static_cast<int>(fontAtlas->Fonts[i]->FontSize);
+	}
+
+	// We need to generate the font, proceed with its creation/update
+	if( needBuild )
+	{
+		mFontDPIScale				= fontDPIScale;
+		fontAtlas->Flags			|= ImFontAtlasFlags_NoPowerOfTwoHeight;
+		fontAtlas->TexDesiredWidth	= 8*1024;
+		fontAtlas->Clear();
+
+		//---------------------------------------------------------------------------------------------
+		// Load our Font 
+		// IMPORTANT: Must be added in same order as enum 'FNetImguiModule::eFont'
+		//---------------------------------------------------------------------------------------------
+		ImFontConfig fontConfig={};
+		fontConfig.SizePixels = 13.f*mFontDPIScale;
+		fontAtlas->AddFontDefault(&fontConfig);	// Proggy Clean
+
+		AddFontGroup(TEXT("Cousine Fixed"),		16.f, mFontDPIScale, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true, true);
+		AddFontGroup(TEXT("Cousine Fixed"),		20.f, mFontDPIScale, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true, true);
+		AddFontGroup(TEXT("Cousine Fixed"),		24.f, mFontDPIScale, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true, true);
+		AddFontGroup(TEXT("Karla Regular"),		16.f, mFontDPIScale, Karla_Regular_compressed_data,		Karla_Regular_compressed_size,		true);
+		AddFontGroup(TEXT("Droid Sans"),		20.f, mFontDPIScale, Droid_Sans_compressed_data,		Droid_Sans_compressed_size,			true);
+		AddFontGroup(TEXT("Proggy Tiny"),		10.f, mFontDPIScale, Proggy_Tiny_compressed_data,		Proggy_Tiny_compressed_size,		false);
+		AddFontGroup(TEXT("Roboto Medium"),		16.f, mFontDPIScale, Roboto_Medium_compressed_data,		Roboto_Medium_compressed_size,		true);
+		AddFontGroup(TEXT("Icons"),				32.f, mFontDPIScale, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
+		AddFontGroup(TEXT("Icons"),				64.f, mFontDPIScale, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
+	#if NETIMGUI_FONT_JAPANESE
+		AddFontGroup(TEXT("日本語"),				32.f, mFontDPIScale, IPAexMincho_compressed_data,		IPAexMincho_compressed_size,		true, false, fontAtlas->GetGlyphRangesJapanese());
+	#endif
+		// ... add extra fonts here (and add extra matching entries in 'FNetImguiModule::eFont' enum)
+	
+
+		//---------------------------------------------------------------------------------------------
+		// 1. Build the Font, 
+		// 2. Send result texture data to NetImgui remote server
+		// 3. Clear the local texture data, since it is un-needed (taking memory only on remote server)
+		//---------------------------------------------------------------------------------------------
+		fontAtlas->Build();
+		uint8_t* pPixelData(nullptr);
+		int width(0), height(0);
+		fontAtlas->GetTexDataAsAlpha8(&pPixelData, &width, &height);
+		NetImgui::SendDataTexture(fontAtlas->TexID, pPixelData, static_cast<uint16_t>(width), static_cast<uint16_t>(height), NetImgui::eTexFormat::kTexFmtA8);
+		fontAtlas->ClearTexData();									// Note: Free unneeded client texture memory. Various font size with japanese and icons can increase memory substancially(~64MB)
+		SetDefaultFont(FNetImguiModule::eFont::kCousineFixed16);
+	}
+
+	ImGui::SetCurrentContext(savedContext);
 }
 
 //=================================================================================================
@@ -414,46 +495,13 @@ void FNetImguiModule::StartupModule()
 	mpContext					= ImGui::CreateContext();
 	ImGuiIO& io					= ImGui::GetIO();
 	io.ConfigFlags				|= ImGuiConfigFlags_DockingEnable;
-	io.Fonts->Flags				|= ImFontAtlasFlags_NoPowerOfTwoHeight;
-	io.Fonts->TexDesiredWidth	= 8*1024;
 	ImGui::SetCurrentContext(mpContext);
 
 #if NETIMGUI_IMPLOT_ENABLED
 	mpImPlotContext				= ImPlot::CreateContext();
 #endif
 
-	//---------------------------------------------------------------------------------------------
-	// Load our Font 
-	// IMPORTANT: Must be added in same order as enum 'FNetImguiModule::eFont'
-	//---------------------------------------------------------------------------------------------
-	io.Fonts->AddFontDefault();	// Proggy Clean
-	AddFontGroup(TEXT("Cousine Fixed"),		16.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true, true);
-	AddFontGroup(TEXT("Cousine Fixed"),		20.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true, true);
-	AddFontGroup(TEXT("Cousine Fixed"),		24.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true, true);
-	AddFontGroup(TEXT("Karla Regular"),		16.f, Karla_Regular_compressed_data,	Karla_Regular_compressed_size,		true);
-	AddFontGroup(TEXT("Droid Sans"),		20.f, Droid_Sans_compressed_data,		Droid_Sans_compressed_size,			true);
-	AddFontGroup(TEXT("Proggy Tiny"),		10.f, Proggy_Tiny_compressed_data,		Proggy_Tiny_compressed_size,		false);
-	AddFontGroup(TEXT("Roboto Medium"),		16.f, Roboto_Medium_compressed_data,	Roboto_Medium_compressed_size,		true);
-	AddFontGroup(TEXT("Icons"),				32.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
-	AddFontGroup(TEXT("Icons"),				64.f, Cousine_Regular_compressed_data,	Cousine_Regular_compressed_size,	true);
-#if NETIMGUI_FONT_JAPANESE
-	AddFontGroup(TEXT("日本語"),				32.f, IPAexMincho_compressed_data,		IPAexMincho_compressed_size,		true, false, io.Fonts->GetGlyphRangesJapanese());
-#endif
-	// ... add extra fonts here (and add extra matching entries in 'FNetImguiModule::eFont' enum)
-	
-
-	//---------------------------------------------------------------------------------------------
-	// 1. Build the Font, 
-	// 2. Send result texture data to NetImgui remote server
-	// 3. Clear the local texture data, since it is un-needed (taking memory only on remote server)
-	//---------------------------------------------------------------------------------------------
-	io.Fonts->Build();
-	uint8_t* pPixelData(nullptr);
-	int width(0), height(0);
-	io.Fonts->GetTexDataAsAlpha8(&pPixelData, &width, &height);
-	NetImgui::SendDataTexture(io.Fonts->TexID, pPixelData, static_cast<uint16_t>(width), static_cast<uint16_t>(height), NetImgui::eTexFormat::kTexFmtA8);
-	io.Fonts->ClearTexData();									// Note: Free unneeded client texture memory. Various font size with japanese and icons can increase memory substancially(~64MB)
-	SetDefaultFont(FNetImguiModule::eFont::kCousineFixed16);
+	BuildFont(1.f);
 
 	//---------------------------------------------------------------------------------------------
 	// Setup connection to wait for netImgui server to reach us
@@ -472,7 +520,7 @@ void FNetImguiModule::StartupModule()
 	//---------------------------------------------------------------------------------------------
 	// Initialize the Unreal Console Command Widget
 	//---------------------------------------------------------------------------------------------
-#if IMGUI_UNREAL_COMMAND_ENABLED
+#if IM_UNREAL_COMMAND_ENABLED
 	spImUnrealCommandContext = ImUnrealCommand::Create(); // Create a new Imgui Command Window
 	// Commented code demonstrating how to add/modify Presets
 	// Could also modify the list of 'Default Presets' directly (UECommandImgui::sDefaultPresets)
@@ -510,7 +558,7 @@ void FNetImguiModule::ShutdownModule()
 	ImGui::DestroyContext(mpContext);
 	mpContext = nullptr;
 
-#if IMGUI_UNREAL_COMMAND_ENABLED
+#if IM_UNREAL_COMMAND_ENABLED
 	ImUnrealCommand::Destroy(spImUnrealCommandContext);
 #endif
 

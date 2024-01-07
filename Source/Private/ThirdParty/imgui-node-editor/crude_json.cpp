@@ -1,4 +1,4 @@
-﻿// Crude implementation of JSON value object and parser.
+// Crude implementation of JSON value object and parser.
 //
 // VERSION 0.1
 //
@@ -9,8 +9,6 @@
 //
 // CREDITS
 //   Written by Michal Cichon
-
-#if NETIMGUI_NODE_EDITOR_ENABLED // @EDIT to avoid compiling this library when not requested
 # include "crude_json.h"
 # include <iomanip>
 # include <limits>
@@ -563,7 +561,7 @@ private:
             if (end != hex.c_str() + hex.size())
                 return false;
 
-            c = v;
+            c = static_cast<int>(v);
             return true;
         }
 
@@ -890,5 +888,3 @@ bool value::save(const string& path, const int indent, const char indent_char) c
 # endif
 
 } // namespace crude_json
-
-#endif //#if NETIMGUI_NODE_EDITOR_ENABLED // @EDIT to avoid compiling this library when not requested
