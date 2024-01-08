@@ -12,6 +12,7 @@ public:
 	SLATE_BEGIN_ARGS(SNetImguiWidget){}
 		SLATE_ARGUMENT(FName, ClientName)
 		SLATE_ARGUMENT(bool, IsEditorWindow)
+		SLATE_ARGUMENT(ImFontAtlas*, FontAtlas)
 	SLATE_END_ARGS()
 
 	virtual 		~SNetImguiWidget();
@@ -31,7 +32,7 @@ public:
 	virtual int32 	OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(0.0f, 0.0f); }
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
-
+	inline ImGuiContext* GetContext(){ return ImguiContext; }
 protected:
 	void 			Update(bool inVisible, bool isFocused, bool inHighlight, float inDPIScale);
 	TSharedPtr<class FNetImguiSlateElement, ESPMode::ThreadSafe> NetImguiDrawers[3];

@@ -14,8 +14,6 @@
 
 #pragma optimize("", off) //SF
 
-FTextureRHIRef 		GFontTexture; //SF TEMP
-
 class FImGuiVertexDeclaration : public FRenderResource
 {
 public:

@@ -44,6 +44,7 @@ void MainPS(
 	//OutColor = TexOrArr2DSample(InTexture, InTextureSampler, Input.UV);
 	//OutColor = Input.Color;
 	//OutColor = float4(Input.Color.rgb, Input.Color.a * ImguiTexture.Sample(ImguiSampler, Input.UV).r);
-	OutColor = Input.Color * ImguiTexture.Sample(ImguiSampler, Input.UV).rgba;
+	OutColor = Input.Color;
+    OutColor.a *= ImguiTexture.Sample(ImguiSampler, Input.UV).r;
 }
 

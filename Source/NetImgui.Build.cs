@@ -125,16 +125,20 @@ public class NetImgui : ModuleRules
 		//			define to know if this extension is active
 		bool bNodeEditor_Enabled = true;
 
-		//=========================================================================================
-		// User Configuration: Fonts
-		//=========================================================================================
-		// See 'NetImguiModule.h' for more details
-		// Note: Can either have IconAwesome or IconMaterialDesign enabled, not both
+        // When true, enable the Unreal Command UI
+        // Allows to access to Unreal console commands remotely, with a list of possible commands
+        bool bUnrealCommand_Enabled = true;
 
-		//---------------------------------------------------------------------
-		// Will load Japanese font 
-		// Note: If not using Japanese, set this to false, saves on memory (avoids 6MB font data table source include)
-		bool bFontJapanese_Enabled = true;
+        //=========================================================================================
+        // User Configuration: Fonts
+        //=========================================================================================
+        // See 'NetImguiModule.h' for more details
+        // Note: Can either have IconAwesome or IconMaterialDesign enabled, not both
+
+        //---------------------------------------------------------------------
+        // Will load Japanese font 
+        // Note: If not using Japanese, set this to false, saves on memory (avoids 6MB font data table source include)
+        bool bFontJapanese_Enabled = true;
 		//---------------------------------------------------------------------
 
 		// Will load the 'Kenney Game Icons' font
@@ -149,6 +153,9 @@ public class NetImgui : ModuleRules
 
 		// Will load 'Google Material Designs icons' font
 		// Contains various icons for every use
+        // Note:    The Kenney Game icons unicode range overlap the Google Material Design
+        //          unicode range, so some material design icons won't be usable when 
+        //          both are enabled
 		bool bFontIconMaterialDesign_Enabled = false;
 
 		//=========================================================================================
@@ -200,11 +207,11 @@ public class NetImgui : ModuleRules
 		});
 		PrivateIncludePaths.AddRange( new string[] { 
 			"Private/ThirdParty/DearImgui",
-			
+			"Private/ThirdParty/NetImgui"
 			//"../Shaders/Private",
 		});
 
-		PCHUsage = PCHUsageMode.NoSharedPCHs; // Prevents problem with Dear ImGui/NetImgui sources not including the right first header
+        PCHUsage = PCHUsageMode.NoSharedPCHs; // Prevents problem with Dear ImGui/NetImgui sources not including the right first header
 		PrivatePCHHeaderFile = "Public/NetImguiModule.h";
 
         if( bBuildEditor ){
@@ -233,12 +240,13 @@ public class NetImgui : ModuleRules
 		PublicDefinitions.Add(string.Format("NETIMGUI_WAITCONNECTION_AUTO_ENABLED={0}", bAutoWaitConnection_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FREETYPE_ENABLED={0}", bNetImgui_Enabled && bFreeType_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_IMPLOT_ENABLED={0}", bNetImgui_Enabled && bImPlot_Enabled ? 1 : 0));
-		PublicDefinitions.Add(string.Format("NETIMGUI_NODE_EDITOR_ENABLED={0}", bNetImgui_Enabled && bNodeEditor_Enabled ? 1 : 0));
-		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_IMGUI_ENABLED={0}", bNetImgui_Enabled && bDemoImgui_Enabled ? 1 : 0));
+        PublicDefinitions.Add(string.Format("NETIMGUI_NODE_EDITOR_ENABLED={0}", bNetImgui_Enabled && bNodeEditor_Enabled ? 1 : 0));
+        PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_IMGUI_ENABLED={0}", bNetImgui_Enabled && bDemoImgui_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_DEMO_ACTOR_ENABLED={0}", bNetImgui_Enabled && bDemoActor_Enabled ? 1 : 0));
-		
-		// Fonts support
-		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_JAPANESE={0}", bFontJapanese_Enabled ? 1 : 0));
+        PublicDefinitions.Add(string.Format("IM_UNREAL_COMMAND_ENABLED={0}", bNetImgui_Enabled && bUnrealCommand_Enabled ? 1 : 0));
+
+        // Fonts support
+        PublicDefinitions.Add(string.Format("NETIMGUI_FONT_JAPANESE={0}", bFontJapanese_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_ICON_GAMEKENNEY={0}", bFontIconGameKenney_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_ICON_AWESOME={0}", bFontIconAwesome_Enabled ? 1 : 0));
 		PublicDefinitions.Add(string.Format("NETIMGUI_FONT_ICON_MATERIALDESIGN={0}", bFontIconMaterialDesign_Enabled && !bFontIconAwesome_Enabled ? 1 : 0));

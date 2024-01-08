@@ -39,8 +39,9 @@ void SNetImguiWidget::Update(UGameViewportClient* inGameViewport, bool inVisible
 
 void SNetImguiWidget::Update(bool inVisible, bool isFocused, bool inHighlight, float inDPIScale)
 {
-	inVisible 				&= !HideUnfocusedWindow || isFocused;
-	DPIScale				= inDPIScale;
+	inVisible 	&= !HideUnfocusedWindow || isFocused;
+	DPIScale	= inDPIScale;
+	
 	EVisibility visibility	= GetVisibility();
 	if( inVisible && !visibility.IsVisible() ){
 		SetVisibility(EVisibility::Visible);
@@ -54,8 +55,8 @@ void SNetImguiWidget::Update(bool inVisible, bool isFocused, bool inHighlight, f
 void SNetImguiWidget::Construct(const FArguments& InArgs)
 {
 	IsEditorWindow			= InArgs._IsEditorWindow;
-	ImguiContext			= ImGui::CreateContext(ImGui::GetIO().Fonts);
-	VerticalDisplayOffset	= IsEditorWindow ? 32.f : 0.f;	
+	ImguiContext			= ImGui::CreateContext(InArgs._FontAtlas);
+	VerticalDisplayOffset	= IsEditorWindow ? 32.f : 0.f;
 	ClientNameID			= InArgs._ClientName;
 	HideUnfocusedWindow		= IsEditorWindow; //SF Add config param?
 	FString stringName 		= InArgs._ClientName.ToString();
@@ -65,10 +66,8 @@ void SNetImguiWidget::Construct(const FArguments& InArgs)
 	ClientIniName.SetNum(iniName.Len()+1);
 	FTCHARToUTF8_Convert::Convert(ClientIniName.GetData(), ClientIniName.Num(), *iniName, iniName.Len()+1);
 
-	ScopedContext scopedContext(ImguiContext);
+	NetImguiScopedContext scopedContext(ImguiContext);
 	ImGui::GetIO().IniFilename = ClientIniName.GetData();
-	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
-	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 	ImGui::GetIO().MouseDrawCursor = false;
 	NetImguiDrawers[0] = MakeShareable(new FNetImguiSlateElement());
 	NetImguiDrawers[1] = MakeShareable(new FNetImguiSlateElement());
@@ -77,7 +76,7 @@ void SNetImguiWidget::Construct(const FArguments& InArgs)
 
 FCursorReply SNetImguiWidget::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 {
-	ScopedContext scopedContext(ImguiContext);
+	NetImguiScopedContext scopedContext(ImguiContext);
 	EMouseCursor::Type newCursor(EMouseCursor::Type::None);
 	if (ImGui::GetIO().WantCaptureMouse){
 		ImGuiMouseCursor cursor = ImGui::GetMouseCursor();
@@ -99,7 +98,7 @@ FCursorReply SNetImguiWidget::OnCursorQuery(const FGeometry& MyGeometry, const F
 
 FReply SNetImguiWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	ScopedContext scopedContext(ImguiContext);
+	NetImguiScopedContext scopedContext(ImguiContext);
 	int imguiMouse = UnrealToImguiMouseButton(MouseEvent.GetEffectingButton());
 	if (imguiMouse != -1) {
 		ImGui::GetIO().AddMouseButtonEvent(imguiMouse, true);
@@ -110,7 +109,7 @@ FReply SNetImguiWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPo
 
 FReply SNetImguiWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	ScopedContext scopedContext(ImguiContext);
+	NetImguiScopedContext scopedContext(ImguiContext);
 	int imguiMouse = UnrealToImguiMouseButton(MouseEvent.GetEffectingButton());
 	if (imguiMouse != -1) {
 		ImGui::GetIO().AddMouseButtonEvent(imguiMouse, false);
@@ -121,7 +120,7 @@ FReply SNetImguiWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPoin
 
 FReply SNetImguiWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	ScopedContext scopedContext(ImguiContext);
+	NetImguiScopedContext scopedContext(ImguiContext);
 	if (ImGui::GetIO().WantCaptureMouse) {
 		ImGui::GetIO().AddMouseWheelEvent(0.f, MouseEvent.GetWheelDelta());
 		return FReply::Handled();
@@ -133,7 +132,7 @@ FReply SNetImguiWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 {
 	//SF Handle Copy/Paste?
 	//FGenericPlatformMisc::ClipboardCopy
-	ScopedContext scopedContext(ImguiContext);
+	NetImguiScopedContext scopedContext(ImguiContext);
 	ImGuiKey imguiKey = UnrealToImguiKey(InKeyEvent.GetKey());
 	if (imguiKey != ImGuiKey_None) {
 		ImGui::GetIO().AddKeyEvent(imguiKey, true);
@@ -144,7 +143,7 @@ FReply SNetImguiWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 
 FReply SNetImguiWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	ScopedContext scopedContext(ImguiContext);
+	NetImguiScopedContext scopedContext(ImguiContext);
 	ImGuiKey imguiKey = UnrealToImguiKey(InKeyEvent.GetKey());
 	if (imguiKey != ImGuiKey_None) {
 		ImGui::GetIO().AddKeyEvent(imguiKey, false);
@@ -156,7 +155,7 @@ FReply SNetImguiWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& In
 //SF TODO: Handle Copy/Paste
 FReply SNetImguiWidget::OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent)
 {
-	ScopedContext scopedContext(ImguiContext);
+	NetImguiScopedContext scopedContext(ImguiContext);
 	if (ImGui::GetIO().WantCaptureKeyboard) {
 		//SF TODO handle TCHar type base on platform...
 		ImGui::GetIO().AddInputCharacterUTF16(InCharacterEvent.GetCharacter());
@@ -167,8 +166,8 @@ FReply SNetImguiWidget::OnKeyChar(const FGeometry& MyGeometry, const FCharacterE
 
 void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	if( GetVisibility().IsVisible() ){
-		ScopedContext scopedContext(ImguiContext);
+	if( GetVisibility().IsVisible() && ImGui::GetIO().Fonts->IsBuilt() ){
+		NetImguiScopedContext scopedContext(ImguiContext);
 		ImGuiIO& io = ImGui::GetIO();
 		SetVisibility(io.WantCaptureMouse ? EVisibility::Visible : EVisibility::HitTestInvisible);
 
@@ -176,15 +175,22 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 		FVector2f mousePos 	= screenToImguiCoord.Inverse().TransformPoint(FSlateApplication::Get().GetCursorPos());
 		mousePos.Y			-= VerticalDisplayOffset;
 		mousePos 			*= AllottedGeometry.Scale;
+		io.DeltaTime		= InDeltaTime; //SF sceneView->Family->Time.GetDeltaRealTimeSeconds();  //FGameTime Time = Canvas->GetTime();
 		io.AddMousePosEvent(mousePos.X, mousePos.Y);
-		io.DeltaTime		= InDeltaTime; //SF sceneView->Family->Time.GetDeltaRealTimeSeconds();  //FGameTime Time = Canvas->GetTime();	
-		io.FontGlobalScale 	= FontScale;
+
+		// We share 1 Font Atlas between all local views, using the highest DPI scaling requirement to
+		// generate the Font texture. Adjust the current font size to what this view needs
+		const auto* fontUnrealData = reinterpret_cast<NetImguiLocalDrawSupport::FFontSuport*>(ImGui::GetIO().Fonts->TexID);
+		for (auto font : fontUnrealData->FontAtlas->Fonts){
+			font->Scale = (DPIScale*FontScale) / fontUnrealData->FontDPIScale;
+		}		
+	
 		//SetFlag(IO.ConfigFlags, ImGuiConfigFlags_NavEnableKeyboard, InputState.IsKeyboardNavigationEnabled());
 		//SetFlag(IO.ConfigFlags, ImGuiConfigFlags_NavEnableGamepad, InputState.IsGamepadNavigationEnabled());
 		//SetFlag(IO.BackendFlags, ImGuiBackendFlags_HasGamepad, InputState.HasGamepad());
 
 		ImGui::NewFrame();
-		ImGui::GetWindowViewport()->DpiScale = DPIScale;
+		//sf ImGui::GetWindowViewport()->DpiScale = DPIScale;
 	
 		if( ImGui::BeginMainMenuBar() ){
 			if (ImGui::BeginMenu("NetImgui")) {
@@ -196,20 +202,12 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 
 				ImGui::SliderFloat("Opacity", &ImguiParameters.X, 0.1f, 1.f);
 				ImGui::SliderFloat("Font scale", &FontScale, 0.5f, 2.f);
-
-				//SF TODO remove this DPI toggle
-				static bool test(true);
-				if (ImGui::MenuItem("DPI", nullptr, &test)) {
-					int dpiMask = ImGuiConfigFlags_DpiEnableScaleViewports | ImGuiConfigFlags_DpiEnableScaleFonts;
-					ImGui::GetIO().ConfigFlags &= ~dpiMask;
-					ImGui::GetIO().ConfigFlags |= (test ? dpiMask : 0);
-				}
 				ImGui::EndMenu();
 			}
 			//SF test
 			if( ImGui::IsItemHovered() ){
 				ImGuiWindowFlags windowFlags 	= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMouseInputs 
-					| ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+												| ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
 				const ImGuiViewport* viewport   = ImGui::GetMainViewport();
 				float padding                   = 16.f * AllottedGeometry.Scale;
 				ImVec2 highlightPos             = viewport->WorkPos + ImVec2(padding, padding);
@@ -234,7 +232,7 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 
 int32 SNetImguiWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	ScopedContext scopedContext(ImguiContext);
+	NetImguiScopedContext scopedContext(ImguiContext);
 	//const SWindow* windowDrawn	= OutDrawElements.GetPaintWindow();
 	//float dpiScale				= windowDrawn ? windowDrawn->GetDPIScaleFactor() : 1.f;
 	FSlateRect imguiRect 		= MyCullingRect;
@@ -245,7 +243,9 @@ int32 SNetImguiWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	// Add DebugDraw Item for the 'Dear ImGui' content of this viewport
 	//---------------------------------------------------------------------------------------------
 	TSharedPtr<FNetImguiSlateElement, ESPMode::ThreadSafe> NetImguiDrawer = NetImguiDrawers[DrawCounter++ % 3];
-	if (NetImguiDrawer->Update(GFontTexture, GFontTexture, ImguiContext, imguiRect, ImguiParameters)) {
+	auto* fontUnrealData = reinterpret_cast<NetImguiLocalDrawSupport::FFontSuport*>(ImGui::GetIO().Fonts->TexID);
+	//SF BLACK TEXTURE support
+	if (NetImguiDrawer->Update(fontUnrealData->TextureRef, fontUnrealData->TextureRef, ImguiContext, imguiRect, ImguiParameters)) {
 		FSlateDrawElement::MakeCustom(OutDrawElements, LayerId++, NetImguiDrawer);
 	}
 	

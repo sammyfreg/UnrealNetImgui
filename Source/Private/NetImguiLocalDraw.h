@@ -23,14 +23,6 @@ inline int UnrealToImguiMouseButton(FKey key) {
 	return mouseKey != ImGuiKey_None ? (int)mouseKey - (int)ImGuiKey_MouseLeft : -1;
 }
 
-class ScopedContext
-{
-public:
-	ScopedContext(ImGuiContext* scopedContext) : SavedContext(ImGui::GetCurrentContext()) { ImGui::SetCurrentContext(scopedContext); }
-	~ScopedContext() { ImGui::SetCurrentContext(SavedContext); }
-	ImGuiContext* SavedContext;
-};
-
 class NetImguiLocalDrawSupport
 {
 public:
@@ -38,7 +30,7 @@ public:
 	void Terminate();
 	void Update();
 	void InterceptInput();
-
+	
 private:	
 	struct FFontBulkData : public FResourceBulkDataInterface
 	{
@@ -52,15 +44,25 @@ private:
 	};
 
 	void CreateFontTexture(FRHICommandListImmediate& RHICmdList);
+
 public://SF TEMP
 	TSharedPtr<SNetImguiWidget>* GetOrCreateNetImguiWidget(const FName& inClientName, bool isEditorViewport, bool inAutoCreate);
-private:
-	FTextureRHIRef 	FontTexture;
-	FTextureRHIRef 	BlackTexture; //SF TODO move to render file?
-	FFontBulkData 	FontTextureData;
-	
+
+	struct FFontSuport
+	{
+		~FFontSuport(){ Terminate(); }
+		void Initialize();
+		void Terminate();
+		void Update(float wantedFontDPIScale);
+		FTextureRHIRef 	TextureRef;
+		FFontBulkData	TextureUpdateData;
+		ImFontAtlas*	FontAtlas = nullptr;
+		float			FontDPIScale = 0.f;
+	};
+
 protected:
-	
+	FTextureRHIRef 								BlackTexture; //SF TODO move to render file?
+	FFontSuport									FontSupport;
 	TMap<FName, TSharedPtr<SNetImguiWidget>> 	WidgetsMap;
 	TMap<FKey, ImGuiKey> 						UnrealKeyToImguiMap;
 	TSharedPtr<IInputProcessor>					InputProcessor;

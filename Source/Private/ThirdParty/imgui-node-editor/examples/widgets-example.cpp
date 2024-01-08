@@ -20,11 +20,11 @@
 
 //=================================================================================================
 // @EDIT SAMPLE
-#if NETIMGUI_NODE_EDITOR_ENABLED && NETIMGUI_DEMO_IMGUI_ENABLED // Avoid compiling this library when not requested8
+#if NETIMGUI_NODE_EDITOR_ENABLED && NETIMGUI_DEMO_IMGUI_ENABLED // Avoid compiling this library when not requested
 #include "Sample\NetImguiDemoNodeEditor.h"
 
-//# include <imgui.h>
-//# include <imgui_internal.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 //# include <imgui_node_editor.h>
 //# include <application.h>
 

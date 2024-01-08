@@ -1,4 +1,3 @@
-#if NETIMGUI_NODE_EDITOR_ENABLED // @EDIT to avoid compiling this library when not requested
 //------------------------------------------------------------------------------
 // VERSION 0.9.1
 //
@@ -761,5 +760,3 @@ int ax::NodeEditor::GetOrderedNodeIds(NodeId* nodes, int size)
 {
     return s_Editor->GetNodeIds(nodes, size);
 }
-
-#endif // #if NETIMGUI_NODE_EDITOR_ENABLED // @EDIT to avoid compiling this library when not requested

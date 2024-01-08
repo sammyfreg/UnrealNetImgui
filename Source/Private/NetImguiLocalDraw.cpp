@@ -105,7 +105,8 @@ TSharedPtr<SNetImguiWidget>* NetImguiLocalDrawSupport::GetOrCreateNetImguiWidget
 		TSharedPtr<SNetImguiWidget> newNetImguiWidget;
 		SAssignNew(newNetImguiWidget, SNetImguiWidget)
 			.ClientName(inClientName)
-			.IsEditorWindow(inIsEditorViewport);
+			.IsEditorWindow(inIsEditorViewport)
+			.FontAtlas(FontSupport.FontAtlas);
 		netImguiWidget = &WidgetsMap.Add(inClientName, newNetImguiWidget);
 	}
 	return netImguiWidget;
@@ -113,11 +114,7 @@ TSharedPtr<SNetImguiWidget>* NetImguiLocalDrawSupport::GetOrCreateNetImguiWidget
 
 void NetImguiLocalDrawSupport::Initialize()
 {
-	ImGuiIO& io	= ImGui::GetIO();
-	uint8_t* pPixelData(nullptr);
-	int width(0), height(0);
-	io.Fonts->GetTexDataAsRGBA32(&pPixelData, &width, &height); //SF TODO handle R8 & RGBA32 ?
-	FontTextureData.Init(pPixelData, width, height);
+	FontSupport.Initialize();
 	//UGameViewportClient::OnViewportCreated().AddRaw(this, &NetImguiLocalDrawSupport::OnGameViewportCreated);
 	
 	//---------------------------------------------------------------------------------------------
@@ -131,7 +128,8 @@ void NetImguiLocalDrawSupport::Initialize()
 void NetImguiLocalDrawSupport::Update()
 {
 	const FNetImguiModule& netImguiModule = FNetImguiModule::Get();
-	
+	float fontDPIScaleMax = 0.f;
+
 	// Makes sure there's a valid SNetImguiWidget for Game View
 	if( GEngine->GameViewport ){
 		FName clientName	= GEngine->GameViewport->bIsPlayInEditorViewport ? TEXT("GamePIE") : TEXT("Game");
@@ -139,68 +137,53 @@ void NetImguiLocalDrawSupport::Update()
 		TSharedPtr<SNetImguiWidget>* netimguiWidget = GetOrCreateNetImguiWidget(clientName, false, wantImgui);
 		if( netimguiWidget ){
 			bool isFocused = true; //SF TODO
-			(*netimguiWidget)->Update(GEngine->GameViewport, wantImgui, isFocused, false, GEngine->GameViewport->GetDPIScale());
+			float fontDPIScale	= GEngine->GameViewport->GetDPIScale();
+			fontDPIScaleMax		= FMath::Max(fontDPIScale, fontDPIScaleMax);
+			(*netimguiWidget)->Update(GEngine->GameViewport, wantImgui, isFocused, false, fontDPIScale);
 		}
 
 		UGameViewportClient* pGameClient = GEngine->GameViewport.Get();
 		bool isCap = pGameClient->IsInPermanentCapture();
 		isCap &= true;
 	}
-
 	
 #if WITH_EDITOR
 	// Makes sure there's a valid SNetImguiWidget for Editor Viewport
 	FLevelEditorModule& LevelEditorModule 			= FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
 	TSharedPtr<ILevelEditor> LevelEditor 			= LevelEditorModule.GetFirstLevelEditor();
 	TSharedPtr<IAssetViewport> ActiveLevelViewport 	= LevelEditorModule.GetFirstActiveViewport();
-	const FViewport* activeViewpport 				= ActiveLevelViewport.IsValid() ? ActiveLevelViewport->GetActiveViewport() : nullptr;
+	const FViewport* activeViewport 				= ActiveLevelViewport.IsValid() ? ActiveLevelViewport->GetActiveViewport() : nullptr;
 	if (LevelEditor.IsValid()){
-		TArray<TSharedPtr<SLevelViewport>> Viewports = LevelEditor->GetViewports();
+		TArray<TSharedPtr<SLevelViewport>> Viewports= LevelEditor->GetViewports();
 		for (const TSharedPtr<SLevelViewport>& ViewportWindow : Viewports){
 			FName clientName	= ViewportWindow->GetConfigKey();
 			bool wantImgui 		= netImguiModule.WantImguiInView(ViewportWindow.Get());
 			TSharedPtr<SNetImguiWidget>* netimguiWidget = GetOrCreateNetImguiWidget(clientName, true, wantImgui);
 			if( netimguiWidget ){
-				bool isFocused = activeViewpport == ViewportWindow->GetActiveViewport();
-				(*netimguiWidget)->Update(ViewportWindow.Get(), wantImgui, isFocused, false, ViewportWindow->GetViewportClient()->GetDPIScale());
+				bool isFocused		= activeViewport == ViewportWindow->GetActiveViewport();
+				float fontDPIScale	= ViewportWindow->GetViewportClient()->GetDPIScale();
+				fontDPIScaleMax		= FMath::Max(fontDPIScale, fontDPIScaleMax);
+				(*netimguiWidget)->Update(ViewportWindow.Get(), wantImgui, isFocused, false, fontDPIScale);
 			}
 		}
 	}
 #endif
 
-	//Move this? And remove update?
-	//---------------------------------------------------------------------------------------------
-	// Generate the Font Texture once
-	//---------------------------------------------------------------------------------------------
-	if (!FontTexture.IsValid() && FontTextureData.GetResourceBulkData() != nullptr )
-	{
-		ENQUEUE_RENDER_COMMAND(ImguiCreateTextures)(
-			[this](FRHICommandListImmediate& RHICmdList)
-			{
-				FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(TEXT("ImGuiFontTexture"), FontTextureData.Width, FontTextureData.Height, EPixelFormat::PF_R8G8B8A8)
-					.SetClearValue(FClearValueBinding::Black)
-					.SetFlags(ETextureCreateFlags::ShaderResource ) 
-					//.SetFlags(ETextureCreateFlags::SRGB)
-					.SetInitialState(ERHIAccess::SRVGraphics)
-					.SetBulkData(&FontTextureData);
-				FontTexture = RHICreateTexture(Desc);
-				GFontTexture = FontTexture;
-			});
-		FlushRenderingCommands();
-		FontTextureData.Discard();
-	}
+	FontSupport.Update(fontDPIScaleMax);
 }
 
 void NetImguiLocalDrawSupport::Terminate()
 {
-	FSlateApplication::Get().UnregisterInputPreProcessor(InputProcessor);
+	if( FSlateApplication::IsInitialized() ){
+		FSlateApplication::Get().UnregisterInputPreProcessor(InputProcessor);
+	}
+	FontSupport.Terminate();
+	WidgetsMap.Reset();
 	//InputProcessor = nullptr;
-	//SF Destroy contexts
 }
 
 void NetImguiLocalDrawSupport::InterceptInput()
 {
-	
 	if( !InputProcessor.IsValid() ){
 		InputProcessor = MakeShareable(new FNetImguiInputProcessor(this));
 		FSlateApplication::Get().RegisterInputPreProcessor(InputProcessor);
@@ -238,7 +221,54 @@ void NetImguiLocalDrawSupport::FFontBulkData::Init(const void* InData, uint32 In
 	Width = InWidth;
 	Height = InHeight;
 	Data.Reset();
-	Data.Append((uint8*)InData, Width*Height*4);
+	Data.Append((uint8*)InData, Width*Height);
+}
+
+void NetImguiLocalDrawSupport::FFontSuport::Initialize()
+{
+	Terminate();
+	FontAtlas = IM_NEW(ImFontAtlas);
+}
+
+void NetImguiLocalDrawSupport::FFontSuport::Terminate()
+{
+	FontDPIScale	= 0.f;
+	TextureRef		= nullptr;
+	TextureUpdateData.Discard();
+	if( FontAtlas ){
+		IM_DELETE(FontAtlas);
+		FontAtlas = nullptr;
+	}
+}
+
+void NetImguiLocalDrawSupport::FFontSuport::Update(float wantedFontDPIScale)
+{
+	if ( FNetImguiModule::UpdateFont(FontAtlas, FontDPIScale, wantedFontDPIScale) )
+	{
+		FontDPIScale = wantedFontDPIScale;
+		uint8_t* pPixelData(nullptr);
+		int width(0), height(0);
+		FontAtlas->GetTexDataAsAlpha8(&pPixelData, &width, &height); //SF TODO handle R8 & RGBA32 ?
+		TextureUpdateData.Init(pPixelData, width, height);
+		// Note: Free unneeded client texture memory (after localdraw was able to process it).
+		// Various font size with japanese and icons can increase memory substancially(~64MB)
+		FontAtlas->ClearTexData();
+
+		ENQUEUE_RENDER_COMMAND(ImguiCreateTextures)(
+			[this](FRHICommandListImmediate& RHICmdList)
+			{
+				FRHITextureCreateDesc Desc = FRHITextureCreateDesc::Create2D(TEXT("ImGuiFontTexture"), TextureUpdateData.Width, TextureUpdateData.Height, EPixelFormat::PF_R8)
+					.SetClearValue(FClearValueBinding::Black)
+					.SetFlags(ETextureCreateFlags::ShaderResource)
+					.SetInitialState(ERHIAccess::SRVGraphics)
+					.SetBulkData(&TextureUpdateData);
+					//.SetFlags(ETextureCreateFlags::SRGB)
+				TextureRef = RHICreateTexture(Desc);
+			});
+		FlushRenderingCommands();
+		TextureUpdateData.Discard();
+		FontAtlas->SetTexID(reinterpret_cast<void*>(this));
+	}
 }
 
 #endif //NETIMGUI_ENABLED

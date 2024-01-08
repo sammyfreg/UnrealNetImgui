@@ -48,6 +48,9 @@
 
 // List of defines to easily use Icons available in 'Google's Material Design Icons'
 // For list of available icons, see: https://fonts.google.com/icons
+// Note:	The Kenney Game icons unicode range overlap the Google Material Design
+//			unicode range, so some material design icons won't be usable when 
+//			both are enabled
 #if NETIMGUI_FONT_ICON_MATERIALDESIGN
 	#include "Fonts/IconFontCppHeader/IconsMaterialDesign.h"
 #endif
@@ -113,10 +116,14 @@ public:
 		//... Your own font can be added here and loaded in 'FNetImguiModule::StartupModule()' in same order
 		//... Feel free to also add/remove font size for your convenience
 		_Count,
+		_Default = kCousineFixed16,
 	};
-	virtual void SetDefaultFont(eFont font);
-	virtual void PushFont(eFont font);
-	virtual void PopFont();
+	
+	static bool						UpdateFont(ImFontAtlas* fontAtlas, float fontDPIScalePrevious, float fontDPIScaleNeeded);
+
+	virtual void					SetDefaultFont(eFont font);
+	virtual void					PushFont(eFont font);
+	virtual void					PopFont();
 	
 	/**
 	* Tell us if the plugin has a working connection established with NetImgui remote server
@@ -178,11 +185,11 @@ protected:
 #if WITH_EDITOR
 	FWantImguiInEditorViewFN	WantImguiInEditorViewFN;
 #endif	
-	
+	float						mFontDPIScale = 0.f;
 	//SF Move to per context
-	ImGuiContext*					mpContext = nullptr;
+	ImGuiContext*				mpContext = nullptr;
 #if NETIMGUI_IMPLOT_ENABLED
-	ImPlotContext*					mpImPlotContext = nullptr;
+	ImPlotContext*				mpImPlotContext = nullptr;
 #endif
 #endif //NETIMGUI_ENABLED
 };
@@ -195,4 +202,13 @@ struct NetImguiScopedFont
 	inline NetImguiScopedFont(FNetImguiModule::eFont font){ FNetImguiModule::Get().PushFont(font); }
 	inline ~NetImguiScopedFont(){ FNetImguiModule::Get().PopFont(); }
 };
+
+class NetImguiScopedContext
+{
+public:
+	NetImguiScopedContext(ImGuiContext* scopedContext) : SavedContext(ImGui::GetCurrentContext()) { ImGui::SetCurrentContext(scopedContext); }
+	~NetImguiScopedContext() { ImGui::SetCurrentContext(SavedContext); }
+	ImGuiContext* SavedContext;
+};
+
 #endif

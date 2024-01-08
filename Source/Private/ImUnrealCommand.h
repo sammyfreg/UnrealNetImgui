@@ -5,7 +5,7 @@
 // @version : 0.3
 // @brief	: Support for 'Unreal Commands' through 'Dear ImGui UI'.
 // @note	: This '.h/.cpp pair' is part of the 'UnrealNetImgui' library, but can be used standalone in your own Dear ImGui Unreal integration
-// @usage	: Search for 'IMGUI_UNREAL_COMMAND_ENABLED' in 'https://github.com/sammyfreg/UnrealNetImgui/blob/master/Source/Private/NetImguiModule.cpp'
+// @usage	: Search for 'IM_UNREAL_COMMAND_ENABLED' in 'https://github.com/sammyfreg/UnrealNetImgui/blob/master/Source/Private/NetImguiModule.cpp'
 //			1- Call 'Create()' once
 //			2- Toggle visibility by changing 'IsVisible()' returned value
 //			3- Call 'Show()' every frame
@@ -13,18 +13,18 @@
 #pragma once
 
 // Default value is 'Active' when nto specified
-#ifndef IMGUI_UNREAL_COMMAND_ENABLED
-	#define IMGUI_UNREAL_COMMAND_ENABLED 1 
+#ifndef IM_UNREAL_COMMAND_ENABLED
+	#define IM_UNREAL_COMMAND_ENABLED 1 
 #endif
 
 // When Dear Imgui is not detected, remove Imgui UnrealCommand support
 #ifndef IMGUI_API
-	#undef IMGUI_UNREAL_COMMAND_ENABLED
-	#define IMGUI_UNREAL_COMMAND_ENABLED 0
+	#undef IM_UNREAL_COMMAND_ENABLED
+	#define IM_UNREAL_COMMAND_ENABLED 0
 #endif
 
 
-#if IMGUI_UNREAL_COMMAND_ENABLED
+#if IM_UNREAL_COMMAND_ENABLED
 
 #include "CoreMinimal.h"
 
@@ -55,4 +55,4 @@ namespace ImUnrealCommand
 	void			AddPresetFilters(CommandContext* pCmdContext, const FString& presetName, const TArray<FString>& filters);
 }
 
-#endif // IMGUI_UNREAL_COMMAND_ENABLED
+#endif // IM_UNREAL_COMMAND_ENABLED
