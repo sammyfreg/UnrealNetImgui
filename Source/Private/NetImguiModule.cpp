@@ -9,9 +9,8 @@
 #include "Misc/App.h"
 #include "Misc/CoreDelegates.h"
 #include "HAL/IConsoleManager.h"
-#include "ThirdParty/NetImgui/NetImgui_Api.h"
-
-#include "NetImguiLocalDraw.h"
+#include "LocalDraw/NetImguiLocalDraw.h"
+#include "NetImguiSettings.h"
 
 #if NETIMGUI_FREETYPE_ENABLED
 #include "misc/freetype/imgui_freetype.h"
@@ -45,12 +44,14 @@
 	#include "Fonts/FontIPAexMincho/IPAexMincho.cpp"
 #endif
 
+
 //=================================================================================================
 // Misc
 //=================================================================================================
-#include "ImUnrealCommand.h"
-#include "Sample\NetImguiDemoNodeEditor.h"
+#include "Sample/NetImguiDemoNodeEditor.h"
+
 #if IM_UNREAL_COMMAND_ENABLED
+#include "ThirdParty/ImUnrealCommand/ImUnrealCommand.h"
 static ImUnrealCommand::CommandContext* spImUnrealCommandContext = nullptr;
 #endif
 
@@ -254,8 +255,7 @@ static FAutoConsoleCommand GNetImguiDisconnectCmd
 //=================================================================================================
 void FNetImguiModule::Update()
 {
-	LocalDrawSupport.Update();
-
+	LocalDrawSupport->Update();
 	if( NetImgui::IsDrawing() )
 		NetImgui::EndFrame();
 
@@ -265,8 +265,7 @@ void FNetImguiModule::Update()
 #endif
 	{
 		NetImgui::NewFrame(NETIMGUI_FRAMESKIP_ENABLED);	
-		LocalDrawSupport.InterceptInput();
-	
+		LocalDrawSupport->InterceptRemoteInput();
 		if (NetImgui::IsDrawingRemote())
 		{
 			//----------------------------------------------------------------------------
@@ -510,7 +509,6 @@ void FNetImguiModule::StartupModule()
 	// Maps virtual shader source directory /Plugin/FX/Niagara to the plugin's actual Shaders directory.
 	FString PluginShaderDir = FPaths::Combine(IPluginManager::Get().FindPlugin(TEXT("Netimgui"))->GetBaseDir(), TEXT("Shaders"));
 	AddShaderSourceDirectoryMapping(TEXT("/Plugin/UnrealNetimgui"), PluginShaderDir);
-
 	NetImgui::Startup();
 	mpContext					= ImGui::CreateContext();
 	ImGuiIO& io					= ImGui::GetIO();
@@ -549,12 +547,10 @@ void FNetImguiModule::StartupModule()
 	//UECommandImgui::AddPresetCommands(spUECommandContext, TEXT("ExamplePreset"), {"Stat Unit", "Stat Fps"});
 #endif
 
-	UpdateCallbackCB	= FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
-	LocalDrawSupport.Initialize();
-#endif //NETIMGUI_ENABLED
+	UpdateCallbackCB = FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
+	LocalDrawSupport = MakeUnique<FNetImguiLocalDraw>();
 
-	SetWantImguiInGameViewFN(nullptr);
-	SetWantImguiInEditorViewFN(nullptr);
+#endif //NETIMGUI_ENABLED
 }
 
 
@@ -567,7 +563,8 @@ void FNetImguiModule::ShutdownModule()
 {
 #if NETIMGUI_ENABLED
 	FCoreDelegates::OnEndFrame.Remove(UpdateCallbackCB);
-	LocalDrawSupport.Terminate();
+	LocalDrawSupport = nullptr;
+
 	UpdateCallbackCB.Reset();
 	if (NetImgui::IsDrawing())
 		NetImgui::EndFrame();
@@ -592,58 +589,144 @@ void FNetImguiModule::ShutdownModule()
 #endif //NETIMGUI_ENABLED
 }
 
-//=================================================================================================
-// xxxWantImguiInGameView
-//-------------------------------------------------------------------------------------------------
-// Handle requests of knowing if we should use local Dear Imgui content in a game viewport.
-// Default behavior is to always enabled local content.
-//=================================================================================================
-bool DefaultWantImguiInGameView(const UGameViewportClient& inGameClient)
+// Font display
+#if 0
+void FGbxImGuiDebuggerSamples::ShowDemoFont()
 {
-	return true;
-}
-
-void FNetImguiModule::SetWantImguiInGameViewFN(const FWantImguiInGameViewFN& callback)
-{	
-	WantImguiInGameViewFN = callback;
-}
-
-bool FNetImguiModule::WantImguiInView(const UGameViewportClient* inGameClient)const
-{
-	if( inGameClient ){
-		return WantImguiInGameViewFN ? WantImguiInGameViewFN(*inGameClient)
-									: DefaultWantImguiInGameView(*inGameClient);
+	ImGui::SetNextWindowPos(ImVec2(32, 48), ImGuiCond_Once);
+	ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Once);
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg));
+	if (ImGui::Begin("Demo Font/Icons", &SampleFont_Show))
+	{
+		ShowDemoFont_Content();
 	}
-	return false;
+	ImGui::End();
+	ImGui::PopStyleColor(2);
 }
 
-//=================================================================================================
-// xxxWantImguiInEditorView
-//-------------------------------------------------------------------------------------------------
-// Handle requests of knowing if we should use local Dear Imgui content in a editor viewport.
-// Default behavior is to enable it on view set to perspective and without PIE current active.
-//=================================================================================================
-bool DefaultWantImguiInEditorView(const SLevelViewport& inEditorViewport)
+//-----------------------------------------------------------------------------
+void FGbxImGuiDebuggerSamples::ShowDemoFont_Content()
 {
-	return 	inEditorViewport.HasPlayInEditorViewport() == false &&
-			inEditorViewport.GetLevelViewportClient().IsPerspective();
-}
+	ImFontAtlas& FontAtlas = *ImGui::GetIO().Fonts;
+	int fontSelected = static_cast<int>(SampleFont_Font);
 
-void FNetImguiModule::SetWantImguiInEditorViewFN(const FWantImguiInEditorViewFN& callback)
-{
-	WantImguiInEditorViewFN = callback;
-}
-
-bool FNetImguiModule::WantImguiInView(const SLevelViewport* inEditorViewport)const
-{
-	if( inEditorViewport ){
-		return WantImguiInEditorViewFN	? WantImguiInEditorViewFN(*inEditorViewport)
-										: DefaultWantImguiInEditorView(*inEditorViewport);
+	if (ImGui::BeginCombo("Font", FontAtlas.Fonts[fontSelected]->GetDebugName()))
+	{
+		for (int i = 0; i < FontAtlas.Fonts.size(); ++i)
+		{
+			ImGui::PushID((void*)FontAtlas.Fonts[i]);
+			if (ImGui::Selectable(FontAtlas.Fonts[i]->GetDebugName(), FontAtlas.Fonts[i] == FontAtlas.Fonts[fontSelected]))
+				fontSelected = i;
+			ImGui::PopID();
+		}
+		ImGui::EndCombo();
+		SampleFont_Font = static_cast<FImGuiModule::eFont>(fontSelected);
 	}
-	return false;
+	ImGui::NewLine();
+
+
+	if (ImGui::BeginChild("client"))
+	{
+		if (ImGui::CollapsingHeader("Example text", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::TextColored(ImVec4(0.1, 1, 0.1, 1), "Filler");
+			{
+				ImGuiScopedFont selectedFont(SampleFont_Font);
+				ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
+			}
+
+			ImGui::NewLine();
+			ImGui::TextColored(ImVec4(0.1, 1, 0.1, 1), "Icons inside text " ICON_KI_HEART);
+			{
+				ImGuiScopedFont selectedFont(SampleFont_Font);
+				
+				ImGui::TextWrapped("Mixing text and icons is Easy! Let's go crazy " ICON_KI_BUTTON_A " " ICON_KI_BUTTON_X " " ICON_KI_BUTTON_CIRCLE " " ICON_KI_BUTTON_TRIANGLE " " ICON_KI_BUTTON_R1 " " ICON_KI_BUTTON_L1 ". Just search for 'ShowDemoFont_Content()' in code to see how you can use them with a simple #Define string.");				
+				ImGui::NewLine();
+
+				const char* HeartAnimString[] = { ICON_KI_HEART, ICON_KI_HEART_HALF_O, ICON_KI_HEART_O, ICON_KI_HEART_HALF_O };
+				const char* DPadAnimString[] = { ICON_KI_DPAD, ICON_KI_DPAD_TOP, ICON_KI_DPAD_RIGHT, ICON_KI_DPAD_BOTTOM, ICON_KI_DPAD_LEFT };
+				uint32_t animIndex = (GFrameCounter / 32);
+				ImGui::Text("With some animation: %s  %s", HeartAnimString[animIndex % UE_ARRAY_COUNT(HeartAnimString)], DPadAnimString[animIndex % UE_ARRAY_COUNT(DPadAnimString)]);
+				ImGui::NewLine();
+
+				ImGui::Text("Example: Some icon " ICON_FA_FACE_GRIN_WIDE " with text");
+				ImGui::Text("Code   : ImGui::Text(\"Some icon \" ICON_FA_FACE_GRIN_WIDE \" with text\");");
+				ImGui::NewLine();
+				
+				char website1[] = { "https://kenney.nl/assets/game-icons" };
+				char website2[] = { "https://kenney.nl/assets/game-icons-expansion" };
+				char website3[] = { "https://fontawesome.com/v6/search?m=free" };
+				ImGui::TextWrapped("Look at 'IconsKenney.h' and 'IconsFontAwesome6.h' for a list of icons #defines and these 3 websites for more informations");
+				ImGui::InputText("##website1", website1, sizeof(website1), ImGuiInputTextFlags_ReadOnly);
+				ImGui::InputText("##website2", website2, sizeof(website2), ImGuiInputTextFlags_ReadOnly);
+				ImGui::InputText("##website3", website3, sizeof(website3), ImGuiInputTextFlags_ReadOnly);
+			}
+			ImGui::NewLine();
+		}
+		constexpr int ICON_START_FA = 0x2013; // Skip first few font awesome characters that are regular symbols
+		ShowDemoFont_Table("Characters Table : Standard", 0, 256);
+		
+		ImGui::NewLine();
+		ImGui::TextColored(ImVec4(0.1, 1, 0.1, 1), "These 2 Icons series are available");
+		ShowDemoFont_Table("Characters Table : Kenny Game Icons", ICON_MIN_KI, ICON_MAX_KI);
+		ShowDemoFont_Table("Characters Table : Font Awesome 6 Icons", ICON_START_FA, ICON_MAX_FA, ICON_MIN_KI, ICON_MAX_KI);
+	}
+	ImGui::EndChild();
 }
+
+//-----------------------------------------------------------------------------
+void FGbxImGuiDebuggerSamples::ShowDemoFont_Table(const char* IconsName, uint32_t IconUnicodeFirst, uint32_t IconUnicodeLast, uint32_t ExcludeUnicodeFirst, uint32_t ExcludeUnicodeLast)
+{
+	const ImFont& font = *ImGui::GetFont();
+	if (ImGui::CollapsingHeader(IconsName))
+	{
+		ImGuiScopedFont selectedFont(SampleFont_Font);
+		float iconHeight = ImGui::GetFontSize() * 1.4f;
+		int colCount = static_cast<int>(ImGui::GetContentRegionAvail().x / iconHeight);
+		if (ImGui::BeginTable("Font Table", colCount, ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_NoHostExtendX | ImGuiTableFlags_Borders | ImGuiTableFlags_NoKeepColumnsVisible))
+		{
+			WIDECHAR unicodeString[2] = {};
+			for (uint32_t unitcode(IconUnicodeFirst); unitcode <= IconUnicodeLast; ++unitcode)
+			{
+				// Font Kenney character range is inside Font Awesome. 
+				// Avoids displaying them 
+				if (unitcode == ExcludeUnicodeFirst)
+				{
+					unitcode = ExcludeUnicodeLast;
+					continue;
+				}
+				const ImFontGlyph* glyph = font.FindGlyph(static_cast<ImWchar>(unitcode));
+				if (glyph && glyph != font.FallbackGlyph)
+				{
+					unicodeString[0]		= unitcode;
+					auto strConvert			= StringCast<UTF8CHAR>(unicodeString);
+					const char* utf8String	= (const char*)strConvert.Get();
+					ImGui::TableNextColumn();
+					ImGui::Selectable(utf8String, ImGui::IsItemHovered());
+					if (ImGui::IsItemHovered())
+					{
+						unsigned int utf8Digits[4] = { static_cast<unsigned char>(utf8String[0]), static_cast<unsigned char>(utf8String[1]), static_cast<unsigned char>(utf8String[2]), static_cast<unsigned char>(utf8String[3]) };
+						ImGuiScopedFont tooltipFont(FImGuiModule::eFont::kCousineRegular_16);
+						ImGui::SetTooltip(	utf8String[1] == 0	? "Unicode:0x%04X -=- UTF8:0x[%02X]" :
+											utf8String[2] == 0	? "Unicode:0x%04X -=- UTF8:0x[%02X][%02X" :
+											utf8String[3] == 0	? "Unicode:0x%04X -=- UTF8:0x[%02X][%02X][%02X]" :
+											utf8String[4] == 0	? "Unicode:0x%04X -=- UTF8:0x[%02X][%02X][%02X][%02X]"
+																: "Unicode:0x%04X -=- UTF8:Invalid", unitcode, utf8Digits[0], utf8Digits[1], utf8Digits[2], utf8Digits[3]);
+					}
+				}
+			}
+			ImGui::EndTable();
+		}
+	}
+}
+#endif
 #define LOCTEXT_NAMESPACE "FNetImguiModule"
 IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
+//TCustomShowFlag<> ShowNetImgui(TEXT("NetImgui"), true /*DefaultEnabled*/, SFG_Developer, LOCTEXT("ShowNetImgui", "NetImgui enabled"));
+//TCustomShowFlag<> ShowNetImguiLocal(TEXT("NetImguiLocal"), true /*DefaultEnabled*/, SFG_Developer, LOCTEXT("ShowNetImguiLocal", "Show Local NetImgui"));
+//TCustomShowFlag<> ShowNetImguiRemote(TEXT("NetImguiRemote"), true /*DefaultEnabled*/, SFG_Developer, LOCTEXT("ShowNetImguiRemote", "Show Remote NetImgui"));
+
 #undef LOCTEXT_NAMESPACE
 
 #pragma optimize("", on) //SF

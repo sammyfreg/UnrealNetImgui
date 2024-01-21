@@ -46,7 +46,12 @@ SocketInfo* Connect(const char* ServerHost, uint32_t ServerPort)
 {
 	SocketInfo* pSocketInfo					= nullptr;
 	ISocketSubsystem* SocketSubSystem		= ISocketSubsystem::Get();
-	auto ResolveInfo						= SocketSubSystem->GetHostByName(ServerHost);	
+	auto ResolveInfo						= SocketSubSystem->GetHostByName(ServerHost);
+
+	if( !ResolveInfo ){
+		return nullptr;
+	}
+
 	while( !ResolveInfo->IsComplete() ){
 		FPlatformProcess::YieldThread();
 	}

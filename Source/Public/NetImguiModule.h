@@ -5,25 +5,23 @@
 #include <Modules/ModuleManager.h>
 
 #ifndef NETIMGUI_ENABLED
-	#define NETIMGUI_ENABLED 0
+#define NETIMGUI_ENABLED 0
+#endif
 
-#elif NETIMGUI_ENABLED
+#if NETIMGUI_ENABLED
 
 //=================================================================================================
 // Additional Header includes
 // Note: The following 'Defines' are optional features enabled by user in NetImgui.Build.cs
 //=================================================================================================
 #include "imgui.h"
-#include "NetImguiLocalDraw.h"
 
-/// See https://github.com/epezent/implot for more info
 #if NETIMGUI_IMPLOT_ENABLED
-	#include "implot.h"
+	#include "implot.h"				// See https://github.com/epezent/implot for more info
 #endif
 
-// See https://github.com/thedmd/imgui-node-editor for more info
 #if NETIMGUI_NODE_EDITOR_ENABLED
-	#include "imgui_node_editor.h"
+	#include "imgui_node_editor.h"	// See https://github.com/thedmd/imgui-node-editor for more info
 #endif
 
 // Note1:	Active Icon Fonts can be toggled in 'NetImgui.Build.cs'
@@ -57,9 +55,9 @@
 
 #if WITH_EDITOR
 #include "SLevelViewport.h"
-typedef TFunction<bool(const SLevelViewport&)> FWantImguiInEditorViewFN;
+typedef TFunction<bool(const SLevelViewport&, bool HasViewportFocus)> FWantImguiInEditorViewFN;
 #endif
-typedef TFunction<bool(const UGameViewportClient&)> FWantImguiInGameViewFN;
+typedef TFunction<bool(const UGameViewportClient&, bool HasInputFocus)> FWantImguiInGameViewFN;
 
 #endif //NETIMGUI_ENABLED
 
@@ -75,26 +73,18 @@ public:
 	 *
 	 * @return Returns singleton instance, loading the module on demand if needed
 	 */
-	static inline FNetImguiModule&	Get() {
-		// Avoid lookup by finding the element once per 'Frame/Dll' and storing the pointer
-		static FNetImguiModule* spLoadedModule = nullptr;
-		static uint64 sLastFrame = 0;
-		if( !spLoadedModule || sLastFrame != GFrameCounter ){
-			spLoadedModule = static_cast<FNetImguiModule*>(&FModuleManager::LoadModuleChecked<FNetImguiModule>("NetImgui"));
-		}
-		return *spLoadedModule;
-	}
+	static inline FNetImguiModule&	Get();
 	
 	/**
 	 * Checks to see if this module is loaded and ready. It is only valid to call Get() if IsAvailable() returns true.
 	 *
 	 * @return True if the module is loaded and ready to use
 	 */
-	static inline bool	IsAvailable() { return FModuleManager::Get().IsModuleLoaded("NetImgui"); }
+	static inline bool IsAvailable() { return FModuleManager::Get().IsModuleLoaded("NetImgui"); }
 
 	/** IModuleInterface implementation */
-	virtual void		StartupModule() override;
-	virtual void		ShutdownModule() override;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 #if NETIMGUI_ENABLED
 	enum class eFont
@@ -119,11 +109,10 @@ public:
 		_Default = kCousineFixed16,
 	};
 	
-	static bool						UpdateFont(ImFontAtlas* fontAtlas, float fontDPIScalePrevious, float fontDPIScaleNeeded);
-
-	virtual void					SetDefaultFont(eFont font);
-	virtual void					PushFont(eFont font);
-	virtual void					PopFont();
+	static bool		UpdateFont(ImFontAtlas* fontAtlas, float fontDPIScalePrevious, float fontDPIScaleNeeded);
+	virtual void	SetDefaultFont(eFont font);
+	virtual void	PushFont(eFont font);
+	virtual void	PopFont();
 	
 	/**
 	* Tell us if the plugin has a working connection established with NetImgui remote server
@@ -141,34 +130,8 @@ public:
 	* 
 	* @return True if the module is expecting some Dear ImGui draws this frame
 	*/
-	inline bool IsDrawing()
-	{
-		checkSlow(IsInGameThread());
-		if ( isDrawing() )
-		{
-			// HotReload note: When a dll is reloaded, original dll is still loaded and all 'Dear ImGui' 
-			// functions are still pointing to it when called from outside this dll. Only this module object
-			// is recreated. This means that the game code will call original dll but this module object 
-			// will use reloaded dll ImGui functions. To prevent issue with destroyed context, we are 
-			// making sure that the original dll knows about this module's newly created context here.
-			ImGui::SetCurrentContext(Get().mpContext);
-			return true;
-		}
-		return false;
-	}
+	inline bool IsDrawing();
 
-	/**	
-	* User configurable callback to let the plugin know which viewport should
-	* display local Dear Imgui content (when enabled). 
-	* 
-	* Assigning 'nullptr' will reset to the default behaviour of enabled on 
-	* Game, PIE and Editor perspective viewport.
-	*/
-	void SetWantImguiInGameViewFN(const FWantImguiInGameViewFN& callback);
-	void SetWantImguiInEditorViewFN(const FWantImguiInEditorViewFN& callback);
-	bool WantImguiInView(const UGameViewportClient* inGameClient)const;
-	bool WantImguiInView(const SLevelViewport*)const;
-	
 	/**
 	* Add your Dear ImGui drawing callbacks to this emitter
 	** Note: If NetImgui module is reloaded, you will lose your callbacks
@@ -179,17 +142,12 @@ protected:
 	virtual bool				isDrawing()const;
 	void						Update();
 	
-	FDelegateHandle				UpdateCallbackCB;
-	NetImguiLocalDrawSupport	LocalDrawSupport;
-	FWantImguiInGameViewFN		WantImguiInGameViewFN;
-#if WITH_EDITOR
-	FWantImguiInEditorViewFN	WantImguiInEditorViewFN;
-#endif	
-	float						mFontDPIScale = 0.f;
-	//SF Move to per context
-	ImGuiContext*				mpContext = nullptr;
+	FDelegateHandle							UpdateCallbackCB;
+	TUniquePtr<class FNetImguiLocalDraw>	LocalDrawSupport;
+	float									mFontDPIScale = 0.f;
+	ImGuiContext*							mpContext = nullptr;
 #if NETIMGUI_IMPLOT_ENABLED
-	ImPlotContext*				mpImPlotContext = nullptr;
+	ImPlotContext*							mpImPlotContext = nullptr;
 #endif
 #endif //NETIMGUI_ENABLED
 };
@@ -197,6 +155,34 @@ protected:
 //SF TODO use this for remote too? 'SRemoteControlPanel::CreateCPUThrottleWarning'
 
 #if NETIMGUI_ENABLED
+
+FNetImguiModule& FNetImguiModule::Get() 
+{
+	// Avoid lookup by finding the element once per 'Frame/Dll' and storing the pointer
+	static FNetImguiModule* sLoadedModulePtr(nullptr);
+	static uint64 sLastFrame(0);
+	if( !sLoadedModulePtr || sLastFrame != GFrameCounter ){
+		sLoadedModulePtr = static_cast<FNetImguiModule*>(&FModuleManager::LoadModuleChecked<FNetImguiModule>("NetImgui"));
+	}
+	return *sLoadedModulePtr;
+}
+
+bool FNetImguiModule::IsDrawing()
+{
+	checkSlow(IsInGameThread());
+	if ( isDrawing() )
+	{
+		// HotReload note: When a dll is reloaded, original dll is still loaded and all 'Dear ImGui' 
+		// functions are still pointing to it when called from outside this dll. Only this module object
+		// is recreated. This means that the game code will call original dll but this module object 
+		// will use reloaded dll ImGui functions. To prevent issue with destroyed context, we are 
+		// making sure that the original dll knows about this module's newly created context here.
+		ImGui::SetCurrentContext(Get().mpContext);
+		return true;
+	}
+	return false;
+}
+
 struct NetImguiScopedFont
 {
 	inline NetImguiScopedFont(FNetImguiModule::eFont font){ FNetImguiModule::Get().PushFont(font); }

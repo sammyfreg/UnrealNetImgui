@@ -82,6 +82,7 @@ public class NetImgui : ModuleRules
 
 		// When true, only redraw Dear ImGui when needed, saving processing.
 		// When enabled, user must check "NetImguiHelper::IsDrawing()" before emiting ImGui draws
+        // Or rely on NetImgui callbacks for when to draw
 		bool bFrameSkip_Enabled = true;
 		//---------------------------------------------------------------------
 
@@ -201,6 +202,7 @@ public class NetImgui : ModuleRules
 			"InputCore",
 			"Renderer",
 			"RHI",
+			"DeveloperSettings",
 			"Slate", //SF TEMP?
 			"SlateCore", //SF TEMP?
 
