@@ -111,7 +111,7 @@ void MethodA_DrawImgui_FrameCallback()
 	{
 		if( ImGui::Begin("DemoActor: PerFrame") )
 		{
-			ImGui::TextWrapped(u8"This Windows is drawn once per frame (when NetImguiServer request it), using a NetImgui callback.");
+			ImGui::TextWrapped("This Windows is drawn once per frame (when NetImguiServer request it), using a NetImgui callback.");
 			ImGui::NewLine();
 
 			//-------------------------------------------------------------------------------------
@@ -128,7 +128,7 @@ void MethodA_DrawImgui_FrameCallback()
 				{
 					//--- Showcase using a utf8 string mixing japanese and latin content ---
 					NetImguiScopedFont iconFont(FNetImguiModule::eFont::kJapanese32);
-					ImGui::TextWrapped(u8"日本語とカタカナとひらがなとlatinを使用することができます。やった！");
+					ImGui::TextWrapped("日本語とカタカナとひらがなとlatinを使用することができます。やった！");
 				}
 			#endif
 			
@@ -153,7 +153,7 @@ void MethodA_DrawImgui_FrameCallback()
 				ImGui::TextColored(kColorHighlight, "%s",  TCHAR_TO_UTF8(*titleAwesome));
 				
 				//--- Showcase using a utf8 string with icons inserted in it as a regular printf string constant ---
-				ImGui::Text(u8"I %s icons in my text.", ICON_FA_HEART);
+				ImGui::Text("I %s icons in my text.", ICON_FA_HEART);
 				{
 					NetImguiScopedFont iconFont(FNetImguiModule::eFont::kIcons64);
 					const char* zAnimation[]={ICON_FA_BATTERY_EMPTY, ICON_FA_BATTERY_QUARTER, ICON_FA_BATTERY_HALF, ICON_FA_BATTERY_THREE_QUARTERS, ICON_FA_BATTERY_FULL };
@@ -323,7 +323,7 @@ void ANetImguiDemoActor::MethodC_DrawImgui_ActorTick()
 			ImGui::SetNextWindowSize(ImVec2(400.f, 200.f), ImGuiCond_Once);
 			if (ImGui::Begin(TCHAR_TO_UTF8(*windowName)))
 			{
-				ImGui::TextWrapped(u8"One window per 'ANetImguiDemoActor' instance will be displayed. The Dear ImGui content is being drawn inside the actor's tick method, without any callback needed.");
+				ImGui::TextWrapped("One window per 'ANetImguiDemoActor' instance will be displayed. The Dear ImGui content is being drawn inside the actor's tick method, without any callback needed.");
 				ImGui::NewLine();
 				
 				ImGui::TextColored(kColorHighlight, "Name: ");
