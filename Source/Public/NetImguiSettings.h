@@ -2,10 +2,12 @@
 
 #pragma once
 
+
 #include "Engine/DeveloperSettings.h"
 #include "NetImguiSettings.generated.h"
 
-NETIMGUI_API extern TAutoConsoleVariable<int32> CVarNetImguiShow;
+//SF #include "HAL/IConsoleManager.h"
+//NETIMGUI_API extern TAutoConsoleVariable<int32> CVarNetImguiShow;
 
 
 UENUM()

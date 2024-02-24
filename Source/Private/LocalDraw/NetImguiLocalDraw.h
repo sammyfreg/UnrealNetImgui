@@ -30,9 +30,6 @@ public:
 	void Update();
 	void InterceptRemoteInput();
 	void ToggleWidgetActivated(TSharedPtr<SNetImguiWidget> NetImguiWidget = nullptr);
-	//bool IsGameInputFocused();
-	//void GameInputSet(bool Enable);
-	//void GameInputToggle();
 	TSharedPtr<SNetImguiWidget> GetActiveViewportWidget();
 
 	/**	

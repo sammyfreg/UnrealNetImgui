@@ -38,7 +38,6 @@ bool SNetImguiWidget::ToggleActivation()
 	{
 		Activated = !Activated;
 	}
-	
 	return Activated;
 }
 
@@ -49,10 +48,11 @@ bool SNetImguiWidget::ToggleActivation()
 //=================================================================================================
 void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	if( GetVisibility().IsVisible() && ImGui::GetIO().Fonts->IsBuilt() ){
+	if( GetVisibility().IsVisible() && ImGui::GetIO().Fonts->IsBuilt() )
+	{
 		NetImguiScopedContext ScopedContext(ImguiContext);
 		ImGuiIO& io		= ImGui::GetIO();
-		io.DeltaTime	= InDeltaTime; //SF sceneView->Family->Time.GetDeltaRealTimeSeconds();  //FGameTime Time = Canvas->GetTime();
+		io.DeltaTime	= InDeltaTime;
 		
 		// Ignore mouse when we do not have access to it
 		if (FSlateApplication::Get().GetCursorUser().Get()->HasAnyCapture()){
@@ -61,7 +61,7 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 		else{
 			const FSlateRenderTransform screenToImguiCoord = AllottedGeometry.GetAccumulatedRenderTransform();
 			FVector2f mousePos	= screenToImguiCoord.Inverse().TransformPoint(FSlateApplication::Get().GetCursorPos());
-			mousePos.Y			-= VerticalDisplayOffset;
+			mousePos.Y			-= GetDrawVerticalOffset();
 			mousePos 			*= AllottedGeometry.Scale;
 			io.AddMousePosEvent(mousePos.X, mousePos.Y);
 		}
@@ -69,12 +69,12 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 		// Configure this widget as passthrough when no mouse events are needed
 		SetVisibility(io.WantCaptureMouse ? EVisibility::Visible : EVisibility::HitTestInvisible);
 		
-		// We share 1 Font Atlas between all local views, using the highest DPI scaling when generating it
-		// We size the font down to match this view expected DPI
+		// We share 1 Font Atlas between all local views, using the highest DPI scaling detected
+		// We then size down the font drawing to match this view expected DPI
 		const auto* fontUnrealData = reinterpret_cast<FNetImguiLocalDraw::FFontSuport*>(ImGui::GetIO().Fonts->TexID);
 		for (auto font : fontUnrealData->FontAtlas->Fonts){
-			font->Scale = (DPIScale*FontScale) / fontUnrealData->FontDPIScale;
-		}		
+			font->Scale = (GetDPIScale()*FontScale) / fontUnrealData->FontDPIScale;
+		}
 	
 		//SetFlag(IO.ConfigFlags, ImGuiConfigFlags_NavEnableKeyboard, InputState.IsKeyboardNavigationEnabled());
 		//SetFlag(IO.ConfigFlags, ImGuiConfigFlags_NavEnableGamepad, InputState.IsGamepadNavigationEnabled());
@@ -122,10 +122,8 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 int32 SNetImguiWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	NetImguiScopedContext scopedContext(ImguiContext);
-	//const SWindow* windowDrawn	= OutDrawElements.GetPaintWindow();
-	//float dpiScale				= windowDrawn ? windowDrawn->GetDPIScaleFactor() : 1.f;
 	FSlateRect imguiRect 		= MyCullingRect;
-	imguiRect.Top 				+= VerticalDisplayOffset * DPIScale;
+	imguiRect.Top 				+= GetDrawVerticalOffset() * GetDPIScale();
 	ImGui::GetIO().DisplaySize	= ImVec2(imguiRect.GetSize2f().X, imguiRect.GetSize2f().Y);
 
 	//---------------------------------------------------------------------------------------------
@@ -147,25 +145,25 @@ int32 SNetImguiWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 // Called once per frame, to make sure the widget is assigned to the Viewport and
 // adjust its visibility / dpi 
 //=================================================================================================
-void SNetImguiWidget::Update(SLevelViewport* inLevelViewport, bool Visible)
+#if WITH_EDITOR
+void SNetImguiWidget::Update(SLevelViewport* LevelViewport, bool Visible)
 {
 	static const UNetImguiSettings* NetImguiSettings = GetDefault<UNetImguiSettings>();
-	if( ParentEditorViewport != inLevelViewport ){
-		ParentEditorViewport	= inLevelViewport;
+	if( ParentEditorViewport != LevelViewport ){
+		ParentEditorViewport	= LevelViewport;
 		ParentGameViewport		= nullptr;
-		VerticalDisplayOffset	= 32.f; //SF how to handle toolbar?
-		inLevelViewport->AddOverlayWidget(SharedThis(this));
+		LevelViewport->AddOverlayWidget(SharedThis(this));
 	}
 	
-	DPIScale = ParentEditorViewport->GetViewportClient()->GetDPIScale();	
-	
-	// Visibility when settings set to 'Activated' visibility mode, 
-	// is managed here instead of in 'WantImguiInView()', otherwise the widget would never be created
+	// When visibility is configured to 'Activated' in plugin project settings,
+	// we manage visibility here instead of 'WantImguiInView()' to make sure the widget is created,
+	// otherwise, we could never activate it
 	Visible &= NetImguiSettings->LocalVisibilityEditor != ENetImguiVisibility::Activated || IsActivated();
 	if( Visible != GetVisibility().IsVisible() ){
 		SetVisibility(Visible ? EVisibility::Visible : EVisibility::Hidden);
 	}
 }
+#endif //WITH_EDITOR
 
 //=================================================================================================
 // UPDATE (Game View)
@@ -173,18 +171,17 @@ void SNetImguiWidget::Update(SLevelViewport* inLevelViewport, bool Visible)
 // Called once per frame, to make sure the widget is assigned to the Viewport and
 // adjust its visibility / dpi 
 //=================================================================================================
-void SNetImguiWidget::Update(UGameViewportClient* inGameViewport, bool Visible)
+void SNetImguiWidget::Update(UGameViewportClient* GameViewport, bool Visible)
 {
 	static const UNetImguiSettings* NetImguiSettings = GetDefault<UNetImguiSettings>();
-	if( ParentGameViewport != inGameViewport ){
-		constexpr int32 NETIMGUI_WIDGET_Z_ORDER = 10000;
-		ParentGameViewport		= inGameViewport;
+	if( ParentGameViewport != GameViewport ){
+		constexpr int32 NETIMGUI_WIDGET_Z_ORDER = 100000;
+		ParentGameViewport		= GameViewport;
+	#if WITH_EDITOR
 		ParentEditorViewport	= nullptr;
-		VerticalDisplayOffset	= 0.f;
-		inGameViewport->AddViewportWidgetContent(SharedThis(this), NETIMGUI_WIDGET_Z_ORDER);
+	#endif
+		GameViewport->AddViewportWidgetContent(SharedThis(this), NETIMGUI_WIDGET_Z_ORDER);
 	}
-
-	DPIScale = ParentGameViewport->GetDPIScale();
 
 	// Visibility when settings set to 'Activated' visibility mode, 
 	// is managed here instead of in 'WantImguiInView()', otherwise the widget would never be created
@@ -201,21 +198,51 @@ void SNetImguiWidget::Update(UGameViewportClient* inGameViewport, bool Visible)
 //=================================================================================================
 void SNetImguiWidget::Construct(const FArguments& InArgs)
 {
-	ImguiContext			= ImGui::CreateContext(InArgs._FontAtlas);
-	ClientNameID			= InArgs._ClientName;
-	FString stringName 		= InArgs._ClientName.ToString();
-	FString iniName 		= stringName + TEXT("_Imgui.ini");
+	ImguiContext		= ImGui::CreateContext(InArgs._FontAtlas);
+	FString stringName 	= InArgs._ClientName.ToString();
+	FString iniName 	= stringName + TEXT("_Imgui.ini");
 	ClientName.SetNum(stringName.Len()+1);
 	FTCHARToUTF8_Convert::Convert(ClientName.GetData(), ClientName.Num(), *stringName, stringName.Len()+1);
 	ClientIniName.SetNum(iniName.Len()+1);
 	FTCHARToUTF8_Convert::Convert(ClientIniName.GetData(), ClientIniName.Num(), *iniName, iniName.Len()+1);
 
 	NetImguiScopedContext scopedContext(ImguiContext);
-	ImGui::GetIO().IniFilename = ClientIniName.GetData();
-	ImGui::GetIO().MouseDrawCursor = false;
+	ImGui::GetIO().IniFilename		= ClientIniName.GetData();
+	ImGui::GetIO().MouseDrawCursor	= false;
 	NetImguiDrawers[0] = MakeShareable(new FNetImguiSlateElement());
 	NetImguiDrawers[1] = MakeShareable(new FNetImguiSlateElement());
 	NetImguiDrawers[2] = MakeShareable(new FNetImguiSlateElement());
+}
+
+//=================================================================================================
+// 
+//-------------------------------------------------------------------------------------------------
+// 
+//=================================================================================================
+float SNetImguiWidget::GetDPIScale() const
+{
+#if WITH_EDITOR
+	return	ParentGameViewport		? ParentGameViewport->GetDPIScale()
+									: ParentEditorViewport	? ParentEditorViewport->GetViewportClient()->GetDPIScale()
+									: 1.f;
+#else
+	return	ParentGameViewport		? ParentGameViewport->GetDPIScale() : 1.f;
+#endif
+}
+
+//=================================================================================================
+// 
+//-------------------------------------------------------------------------------------------------
+// Used to avoid drawing over Editor tool icons at the top of the viewport
+//=================================================================================================
+float SNetImguiWidget::GetDrawVerticalOffset() const
+{
+#if WITH_EDITOR
+	static const UNetImguiSettings* NetImguiSettings = GetDefault<UNetImguiSettings>();
+	if( ParentEditorViewport && NetImguiSettings->LocalVisibilityEditor != ENetImguiVisibility::Activated )
+		return 32.f;
+#endif
+	return 0.f;
 }
 
 //=================================================================================================

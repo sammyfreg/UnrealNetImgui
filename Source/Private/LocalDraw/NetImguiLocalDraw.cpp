@@ -6,7 +6,7 @@
 #if NETIMGUI_LOCALDRAW_ENABLED
 
 #include "NetImguiLocalDraw.h"
-
+#include "Engine.h"
 #include "SceneView.h"
 #include "SceneInterface.h"
 #include "SystemSettings.h"
@@ -28,79 +28,66 @@
 // NetImgui to Unreal Keys mapping
 //=================================================================================================
 TMap<FKey, ImGuiKey> GUnrealKeyToImguiMap;
-struct UnrealToImguiKeyPair { FKey UnrealKey; ImGuiKey ImguiKey; };
-static const UnrealToImguiKeyPair KeysMapping[] = {
-	// Mouse buttons
-	{EKeys::LeftMouseButton, ImGuiKey_MouseLeft},	{EKeys::RightMouseButton, ImGuiKey_MouseRight},	{EKeys::MiddleMouseButton, ImGuiKey_MouseMiddle},
-	{EKeys::ThumbMouseButton, ImGuiKey_MouseX1},	{EKeys::ThumbMouseButton2, ImGuiKey_MouseX2},
-
-	//SF TODO test/finalize key remapping
-	// Keyboard keys
-	{EKeys::Tab, ImGuiKey_Tab},						{EKeys::Left, ImGuiKey_LeftArrow},				{EKeys::Right, ImGuiKey_RightArrow},
-	{EKeys::Up, ImGuiKey_UpArrow},					{EKeys::Down, ImGuiKey_DownArrow},				{EKeys::PageUp, ImGuiKey_PageUp},
-	{EKeys::PageDown, ImGuiKey_PageDown},			{EKeys::Home, ImGuiKey_Home},					{EKeys::End, ImGuiKey_End},
-	{EKeys::Insert, ImGuiKey_Insert},				{EKeys::Delete, ImGuiKey_Delete},				{EKeys::BackSpace, ImGuiKey_Backspace},
-	{EKeys::SpaceBar, ImGuiKey_Space}, 				{EKeys::Enter, ImGuiKey_Enter}, 				{EKeys::Escape, ImGuiKey_Escape},
- 
-	{EKeys::LeftControl, ImGuiKey_LeftCtrl}, 		{EKeys::LeftShift, ImGuiKey_LeftShift}, 		{EKeys::LeftAlt, ImGuiKey_LeftAlt},
-	{EKeys::LeftCommand, ImGuiKey_LeftSuper},		{EKeys::RightControl, ImGuiKey_RightCtrl},		{EKeys::RightShift, ImGuiKey_RightShift},
-	{EKeys::RightAlt, ImGuiKey_RightAlt}, 			{EKeys::RightCommand, ImGuiKey_RightSuper},
-	//ImGuiKey_Menu
-	{EKeys::Zero, ImGuiKey_0}, 	{EKeys::One, ImGuiKey_1}, 	{EKeys::Two, ImGuiKey_2},	{EKeys::Three, ImGuiKey_3},
-	{EKeys::Four, ImGuiKey_4}, 	{EKeys::Five, ImGuiKey_5}, 	{EKeys::Six, ImGuiKey_6},	{EKeys::Seven, ImGuiKey_7},
-	{EKeys::Eight, ImGuiKey_8}, {EKeys::Nine, ImGuiKey_9},
-
-	{EKeys::A, ImGuiKey_A}, {EKeys::B, ImGuiKey_B}, {EKeys::C, ImGuiKey_C}, {EKeys::D, ImGuiKey_D}, {EKeys::E, ImGuiKey_E}, 
-	{EKeys::F, ImGuiKey_F}, {EKeys::G, ImGuiKey_G}, {EKeys::H, ImGuiKey_H}, {EKeys::I, ImGuiKey_I}, {EKeys::J, ImGuiKey_J},	
-	{EKeys::K, ImGuiKey_K}, {EKeys::L, ImGuiKey_L}, {EKeys::M, ImGuiKey_M}, {EKeys::N, ImGuiKey_N}, {EKeys::O, ImGuiKey_O}, 
-	{EKeys::P, ImGuiKey_P}, {EKeys::Q, ImGuiKey_Q}, {EKeys::R, ImGuiKey_R}, {EKeys::S, ImGuiKey_S}, {EKeys::T, ImGuiKey_T},	
-	{EKeys::U, ImGuiKey_U}, {EKeys::V, ImGuiKey_V}, {EKeys::W, ImGuiKey_W}, {EKeys::X, ImGuiKey_X}, {EKeys::Y, ImGuiKey_Y}, 
-	{EKeys::Z, ImGuiKey_Z},
-
-	{EKeys::F1, ImGuiKey_F1}, 	{EKeys::F2, ImGuiKey_F2}, 	{EKeys::F3, ImGuiKey_F3}, 	{EKeys::F4, ImGuiKey_F4}, 
-	{EKeys::F5, ImGuiKey_F5}, 	{EKeys::F6, ImGuiKey_F6}, 	{EKeys::F7, ImGuiKey_F7},	{EKeys::F8, ImGuiKey_F8}, 
-	{EKeys::F9, ImGuiKey_F9}, 	{EKeys::F10, ImGuiKey_F10}, {EKeys::F11, ImGuiKey_F11}, {EKeys::F12, ImGuiKey_F12},
-	
-	{EKeys::Apostrophe, ImGuiKey_Apostrophe},	{EKeys::Comma, ImGuiKey_Comma}, 				{EKeys::Period, ImGuiKey_Period}, 
-	{EKeys::Slash, ImGuiKey_Slash}, 			{EKeys::Semicolon, ImGuiKey_Semicolon}, 		{EKeys::LeftBracket, ImGuiKey_LeftBracket},
-	{EKeys::BackSpace, ImGuiKey_Backslash},		{EKeys::RightBracket, ImGuiKey_RightBracket}, 	{EKeys::A_AccentGrave, ImGuiKey_GraveAccent},
-	{EKeys::CapsLock, ImGuiKey_CapsLock}, 		{EKeys::ScrollLock, ImGuiKey_ScrollLock}, 		{EKeys::NumLock, ImGuiKey_NumLock}, 
-	{EKeys::Pause, ImGuiKey_Pause},
-	
-	{EKeys::NumPadZero, ImGuiKey_Keypad0}, 		{EKeys::NumPadOne, ImGuiKey_Keypad1}, 	{EKeys::NumPadTwo, ImGuiKey_Keypad2},
-	{EKeys::NumPadThree, ImGuiKey_Keypad3}, 	{EKeys::NumPadFour, ImGuiKey_Keypad4}, 	{EKeys::NumPadFive, ImGuiKey_Keypad5},
-	{EKeys::NumPadSix, ImGuiKey_Keypad6}, 		{EKeys::NumPadSeven, ImGuiKey_Keypad7}, {EKeys::NumPadNine, ImGuiKey_Keypad8},
-	{EKeys::Decimal, ImGuiKey_KeypadDecimal},	{EKeys::Divide, ImGuiKey_KeypadDivide}, {EKeys::Multiply, ImGuiKey_KeypadMultiply},	
-	{EKeys::Add, ImGuiKey_KeypadAdd},
-	
-	// No 'numpad version' of these keys in Unreal and already added to imgui
-	{EKeys::Subtract, ImGuiKey_Minus},			{EKeys::Equals, ImGuiKey_Equal},
-	//{EKeys::Subtract, ImGuiKey_KeypadSubtract}, {EKeys::Enter, ImGuiKey_KeypadEnter}, {EKeys::Equals, ImGuiKey_KeypadEqual},
-};
 
 //=================================================================================================
 // NETIMGUI INPUT PROCESSOR
 //-------------------------------------------------------------------------------------------------
-// Intercept a few input before Slate, to shift control to NetImgui when needed
+// Intercept a few inputs before Slate, to shift control to NetImgui when needed
 //=================================================================================================
 class FNetImguiInputProcessor : public IInputProcessor
 {
 public:
 							FNetImguiInputProcessor(FNetImguiLocalDraw* inOwner):LocalDrawOwner(inOwner){};
-	virtual void			Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor){};
 	virtual const TCHAR*	GetDebugName() const { return TEXT("FNetImguiInputProcessor"); }
 	virtual bool			HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override
 	{
-		bool IsNetImguiToggle = InKeyEvent.GetKey() == EKeys::F1;
-		if( IsNetImguiToggle )
+		// Update our list of currently pressed keys
+		static const UNetImguiSettings* NetImguiSettings = GetDefault<UNetImguiSettings>();
+		if( !InKeyEvent.IsRepeat() )
 		{
-			LocalDrawOwner->ToggleWidgetActivated();
-			return true;
+			const TArray<FKey>* ToggleKeysConfigs[] = {&NetImguiSettings->ToggleKeys1, &NetImguiSettings->ToggleKeys2, &NetImguiSettings->ToggleKeys3};
+			static_assert(UE_ARRAY_COUNT(ToggleKeysConfigs) == UE_ARRAY_COUNT(KeydownMask));
+			for(int ConfigIndex(0); ConfigIndex < UE_ARRAY_COUNT(ToggleKeysConfigs); ++ConfigIndex)
+			{
+				const TArray<FKey>* ToggleKeys = ToggleKeysConfigs[ConfigIndex];
+				if( ToggleKeys && ToggleKeys->Num() > 0 )
+				{
+					// Save the keypress into a mask, when it fit one of our wanted input
+					for(int i(0); i< FMath::Min(32, (*ToggleKeys).Num()); ++i)
+					{
+						if( InKeyEvent.GetKey() == (*ToggleKeys)[i] )
+						{
+							KeydownMask[ConfigIndex] |= 1 << i;
+							KeydownFrame = 0;
+						}
+					}
+					// Check if we have all required input to toggle Imgui
+					bool IsNetImguiToggle = (KeydownMask[ConfigIndex] == (1<<(*ToggleKeys).Num())-1);
+					if( IsNetImguiToggle )
+					{
+						LocalDrawOwner->ToggleWidgetActivated();
+						return true;
+					}
+				}
+			}
 		}
 		return false;
 	}
+
+	// Reset Keydown mask after X frames without keypress,
+	// since we do not reliably receive all KeyUp events to unset our mask
+	virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor)
+	{
+		KeydownFrame++;
+		if ( KeydownFrame == 60 )
+		{
+			KeydownMask[0] = KeydownMask[1] = KeydownMask[2] = 0;
+		}
+	}
 protected:
 	FNetImguiLocalDraw* LocalDrawOwner;
+	uint32 KeydownMask[3] = {};			// Bitfield of valid toggle key currently pressed
+	uint32 KeydownFrame;				// Counter used to reset recorded keydowns after x Frames
 };
 
 //=================================================================================================
@@ -241,6 +228,56 @@ FNetImguiLocalDraw::FNetImguiLocalDraw()
 	FontSupport.Initialize();
 	
 	// Initialize the Unreal to DearImgui key mapping once
+	struct UnrealToImguiKeyPair { FKey UnrealKey; ImGuiKey ImguiKey; };
+	const UnrealToImguiKeyPair KeysMapping[] = {
+	// Mouse buttons
+	{EKeys::LeftMouseButton, ImGuiKey_MouseLeft},	{EKeys::RightMouseButton, ImGuiKey_MouseRight},	{EKeys::MiddleMouseButton, ImGuiKey_MouseMiddle},
+	{EKeys::ThumbMouseButton, ImGuiKey_MouseX1},	{EKeys::ThumbMouseButton2, ImGuiKey_MouseX2},
+
+	//SF TODO test/finalize key remapping
+	// Keyboard keys
+	{EKeys::Tab, ImGuiKey_Tab},						{EKeys::Left, ImGuiKey_LeftArrow},				{EKeys::Right, ImGuiKey_RightArrow},
+	{EKeys::Up, ImGuiKey_UpArrow},					{EKeys::Down, ImGuiKey_DownArrow},				{EKeys::PageUp, ImGuiKey_PageUp},
+	{EKeys::PageDown, ImGuiKey_PageDown},			{EKeys::Home, ImGuiKey_Home},					{EKeys::End, ImGuiKey_End},
+	{EKeys::Insert, ImGuiKey_Insert},				{EKeys::Delete, ImGuiKey_Delete},				{EKeys::BackSpace, ImGuiKey_Backspace},
+	{EKeys::SpaceBar, ImGuiKey_Space}, 				{EKeys::Enter, ImGuiKey_Enter}, 				{EKeys::Escape, ImGuiKey_Escape},
+ 
+	{EKeys::LeftControl, ImGuiKey_LeftCtrl}, 		{EKeys::LeftShift, ImGuiKey_LeftShift}, 		{EKeys::LeftAlt, ImGuiKey_LeftAlt},
+	{EKeys::LeftCommand, ImGuiKey_LeftSuper},		{EKeys::RightControl, ImGuiKey_RightCtrl},		{EKeys::RightShift, ImGuiKey_RightShift},
+	{EKeys::RightAlt, ImGuiKey_RightAlt}, 			{EKeys::RightCommand, ImGuiKey_RightSuper},
+	//ImGuiKey_Menu
+	{EKeys::Zero, ImGuiKey_0}, 	{EKeys::One, ImGuiKey_1}, 	{EKeys::Two, ImGuiKey_2},	{EKeys::Three, ImGuiKey_3},
+	{EKeys::Four, ImGuiKey_4}, 	{EKeys::Five, ImGuiKey_5}, 	{EKeys::Six, ImGuiKey_6},	{EKeys::Seven, ImGuiKey_7},
+	{EKeys::Eight, ImGuiKey_8}, {EKeys::Nine, ImGuiKey_9},
+
+	{EKeys::A, ImGuiKey_A}, {EKeys::B, ImGuiKey_B}, {EKeys::C, ImGuiKey_C}, {EKeys::D, ImGuiKey_D}, {EKeys::E, ImGuiKey_E},
+	{EKeys::F, ImGuiKey_F}, {EKeys::G, ImGuiKey_G}, {EKeys::H, ImGuiKey_H}, {EKeys::I, ImGuiKey_I}, {EKeys::J, ImGuiKey_J},
+	{EKeys::K, ImGuiKey_K}, {EKeys::L, ImGuiKey_L}, {EKeys::M, ImGuiKey_M}, {EKeys::N, ImGuiKey_N}, {EKeys::O, ImGuiKey_O},
+	{EKeys::P, ImGuiKey_P}, {EKeys::Q, ImGuiKey_Q}, {EKeys::R, ImGuiKey_R}, {EKeys::S, ImGuiKey_S}, {EKeys::T, ImGuiKey_T},
+	{EKeys::U, ImGuiKey_U}, {EKeys::V, ImGuiKey_V}, {EKeys::W, ImGuiKey_W}, {EKeys::X, ImGuiKey_X}, {EKeys::Y, ImGuiKey_Y},
+	{EKeys::Z, ImGuiKey_Z},
+
+	{EKeys::F1, ImGuiKey_F1}, 	{EKeys::F2, ImGuiKey_F2}, 	{EKeys::F3, ImGuiKey_F3}, 	{EKeys::F4, ImGuiKey_F4}, 
+	{EKeys::F5, ImGuiKey_F5}, 	{EKeys::F6, ImGuiKey_F6}, 	{EKeys::F7, ImGuiKey_F7},	{EKeys::F8, ImGuiKey_F8}, 
+	{EKeys::F9, ImGuiKey_F9}, 	{EKeys::F10, ImGuiKey_F10}, {EKeys::F11, ImGuiKey_F11}, {EKeys::F12, ImGuiKey_F12},
+	
+	{EKeys::Apostrophe, ImGuiKey_Apostrophe},	{EKeys::Comma, ImGuiKey_Comma}, 				{EKeys::Period, ImGuiKey_Period},
+	{EKeys::Slash, ImGuiKey_Slash}, 			{EKeys::Semicolon, ImGuiKey_Semicolon}, 		{EKeys::LeftBracket, ImGuiKey_LeftBracket},
+	{EKeys::BackSpace, ImGuiKey_Backslash},		{EKeys::RightBracket, ImGuiKey_RightBracket}, 	{EKeys::A_AccentGrave, ImGuiKey_GraveAccent},
+	{EKeys::CapsLock, ImGuiKey_CapsLock}, 		{EKeys::ScrollLock, ImGuiKey_ScrollLock}, 		{EKeys::NumLock, ImGuiKey_NumLock},
+	{EKeys::Pause, ImGuiKey_Pause},
+	
+	{EKeys::NumPadZero, ImGuiKey_Keypad0}, 		{EKeys::NumPadOne, ImGuiKey_Keypad1}, 	{EKeys::NumPadTwo, ImGuiKey_Keypad2},
+	{EKeys::NumPadThree, ImGuiKey_Keypad3}, 	{EKeys::NumPadFour, ImGuiKey_Keypad4}, 	{EKeys::NumPadFive, ImGuiKey_Keypad5},
+	{EKeys::NumPadSix, ImGuiKey_Keypad6}, 		{EKeys::NumPadSeven, ImGuiKey_Keypad7}, {EKeys::NumPadNine, ImGuiKey_Keypad8},
+	{EKeys::Decimal, ImGuiKey_KeypadDecimal},	{EKeys::Divide, ImGuiKey_KeypadDivide}, {EKeys::Multiply, ImGuiKey_KeypadMultiply},
+	{EKeys::Add, ImGuiKey_KeypadAdd},
+	
+	// No 'numpad version' of these keys in Unreal and already added to imgui
+	{EKeys::Subtract, ImGuiKey_Minus},			{EKeys::Equals, ImGuiKey_Equal},
+	//{EKeys::Subtract, ImGuiKey_KeypadSubtract}, {EKeys::Enter, ImGuiKey_KeypadEnter}, {EKeys::Equals, ImGuiKey_KeypadEqual},
+	};
+
 	for (size_t i(0); i<UE_ARRAY_COUNT(KeysMapping); ++i) {
 		GUnrealKeyToImguiMap.Add(KeysMapping[i].UnrealKey, KeysMapping[i].ImguiKey);
 	}
@@ -403,7 +440,7 @@ bool FNetImguiLocalDraw::WantImguiInView(const UGameViewportClient* GameClient, 
 							  (NetImguiSettings->LocalVisibilityGame == ENetImguiVisibility::Focused && HasInputFocus);
 	bool ValidShowFlag		= !NetImguiSettings->LocalUseOnScreenDebugFlag || ForceDebugOn || (!ForceDebugOff && GameClient->EngineShowFlags.OnScreenDebug);
 	
-	return ValidVisibility && ValidShowFlag && ValidRemote && WantImguiInGameViewFN(*GameClient, HasInputFocus);
+	return NetImguiSettings->Show && ValidVisibility && ValidShowFlag && ValidRemote && WantImguiInGameViewFN(*GameClient, HasInputFocus);
 }
 
 //=================================================================================================
@@ -437,7 +474,7 @@ bool FNetImguiLocalDraw::WantImguiInView(const SLevelViewport* EditorViewport, b
 							  (NetImguiSettings->LocalVisibilityEditor == ENetImguiVisibility::Activated) || // 'Activated' visibility controlled in widget's update
 							  (NetImguiSettings->LocalVisibilityEditor == ENetImguiVisibility::Focused && HasViewportFocus);
 	bool ValidShowFlag		= !NetImguiSettings->LocalUseOnScreenDebugFlag || ForceDebugOn || (!ForceDebugOff && EditorViewport->GetLevelViewportClient().EngineShowFlags.OnScreenDebug);
-	return ValidVisibility && ValidShowFlag && ValidRemote && WantImguiInEditorViewFN(*EditorViewport, HasViewportFocus);
+	return NetImguiSettings->Show && ValidVisibility && ValidShowFlag && ValidRemote && WantImguiInEditorViewFN(*EditorViewport, HasViewportFocus);
 }
 #endif // #if WITH_EDITOR
 

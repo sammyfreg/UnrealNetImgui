@@ -71,7 +71,8 @@ TAutoConsoleVariable<uint32> CVarNetImguiLocalShowEditor(
 
 UNetImguiSettings::UNetImguiSettings()
 {
-	//uint32 bShow : 1;
+	Show						= true;
+
 	RemoteShow					= true;
 	RemoteHideLocal				= false;
 	RemoteServerName			= TEXT("");

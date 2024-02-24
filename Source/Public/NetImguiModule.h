@@ -16,6 +16,8 @@
 //=================================================================================================
 #include "imgui.h"
 
+class UGameViewportClient;
+
 #if NETIMGUI_IMPLOT_ENABLED
 	#include "implot.h"				// See https://github.com/epezent/implot for more info
 #endif

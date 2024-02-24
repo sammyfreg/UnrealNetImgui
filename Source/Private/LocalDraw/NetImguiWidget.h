@@ -12,12 +12,12 @@ public:
 		SLATE_ARGUMENT(ImFontAtlas*, FontAtlas)
 	SLATE_END_ARGS()
 
-	virtual 				~SNetImguiWidget();
-	void 					Update(class SLevelViewport* inLevelViewport, bool inVisible);
+	virtual 				~SNetImguiWidget();	
 	void 					Update(class UGameViewportClient* gameViewport, bool inVisible);
 	bool					ToggleActivation();
+	float					GetDPIScale() const;
 	inline bool				IsActivated() const { return Activated; }
-	inline float			GetDPIScale() const { return DPIScale; }
+	
 
 	// Widget/Leaftwidget Interface
 	void 					Construct(const FArguments& InArgs);
@@ -35,21 +35,25 @@ public:
 	inline ImGuiContext*	GetContext(){ return ImguiContext; }
 
 protected:
+	float					GetDrawVerticalOffset() const;
+
 	TSharedPtr<class FNetImguiSlateElement, ESPMode::ThreadSafe> NetImguiDrawers[3];
-	const SLevelViewport* ParentEditorViewport		= nullptr;
 	const UGameViewportClient* ParentGameViewport 	= nullptr;
-	float VerticalDisplayOffset 					= 0.f;	// Used to avoid drawing over Editor tool icons at the top of the viewport
 	mutable int DrawCounter							= 0;
 	mutable FVector4f ImguiParameters 				= FVector4f(1, 0, 0, 0);
 	ImGuiContext* ImguiContext 						= nullptr;
 	bool Activated									= false;
-    uint32 ClientID									= 0;
 	float FontScale 								= 1.f;
-	float DPIScale									= 1.f;
 	FName ClientNameID;
     TArray<char> ClientName;
 	TArray<char> ClientIniName;
 	friend class FNetImguiLocalDraw;
+
+#if WITH_EDITOR
+	const SLevelViewport* ParentEditorViewport		= nullptr;
+public:
+	void Update(class SLevelViewport* inLevelViewport, bool inVisible);
+#endif
 };
 
 #endif // NETIMGUI_LOCALDRAW_ENABLED

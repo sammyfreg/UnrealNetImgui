@@ -385,7 +385,10 @@ bool FNetImguiModule::UpdateFont(ImFontAtlas* fontAtlas, float fontDPIScalePrevi
 		int pixelSizeNeeded	= static_cast<int>(static_cast<float>(pixelSizeNative) * fontDPIScaleNeeded);
 		needBuild			= pixelSizeNeeded != static_cast<int>(fontAtlas->Fonts[i]->FontSize);
 	}
-
+	
+	//SF TODO Need to update Default Font on all created context
+	//SF TODO Only update remote font when not local font update
+	
 	// We need to generate the font, proceed with its creation/update
 	if( needBuild )
 	{
@@ -426,7 +429,7 @@ bool FNetImguiModule::UpdateFont(ImFontAtlas* fontAtlas, float fontDPIScalePrevi
 		int width(0), height(0);
 		fontAtlas->GetTexDataAsAlpha8(&pPixelData, &width, &height);
 		NetImgui::SendDataTexture(fontAtlas->TexID, pPixelData, static_cast<uint16_t>(width), static_cast<uint16_t>(height), NetImgui::eTexFormat::kTexFmtA8);
-		fontAtlas->ClearTexData();									// Note: Free unneeded client texture memory. Various font size with japanese and icons can increase memory substancially(~64MB)
+		fontAtlas->ClearTexData();	// Note: Free unneeded client texture memory. Various font size with japanese and icons can increase memory substancially(~64MB)
 	}
 
 	return needBuild;

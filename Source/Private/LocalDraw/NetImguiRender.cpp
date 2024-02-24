@@ -12,6 +12,8 @@
 #include "RHIStaticStates.h" // TStaticRasterizerState
 //#include "Engine/Texture2D.h"
 
+#include "CommonRenderResources.h"
+
 #pragma optimize("", off) //SF
 
 class FImGuiVertexDeclaration : public FRenderResource
@@ -19,7 +21,11 @@ class FImGuiVertexDeclaration : public FRenderResource
 public:
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
 	virtual ~FImGuiVertexDeclaration() {}
-	virtual void InitRHI()
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 3
+	virtual void InitRHI(FRHICommandListBase& RHICmdList) override
+#else
+	virtual void InitRHI() override
+#endif
 	{
 		FVertexDeclarationElementList Elements;
 		uint16 Stride = sizeof(ImDrawVert);
@@ -86,8 +92,8 @@ void FNetImguiSlateElement::DrawRenderThread(FRHICommandListImmediate& RHICmdLis
 		TShaderMapRef<FDearImguiPS> PixelShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 		FRHIResourceCreateInfo 		CreateInfoIdx(TEXT("FImguiIndexBuffer"), &mLocalDrawData.IdxBuffer);
 		FRHIResourceCreateInfo 		CreateInfoVtx(TEXT("FImguiVertexBuffer"), &mLocalDrawData.VtxBuffer);
-		FBufferRHIRef IndexBufferRHI 	= RHICreateIndexBuffer(sizeof(ImDrawIdx), mLocalDrawData.IdxBuffer.GetResourceDataSize(), BUF_Volatile, CreateInfoIdx);
-		FBufferRHIRef VertexBufferRHI 	= RHICreateVertexBuffer(mLocalDrawData.VtxBuffer.GetResourceDataSize(), BUF_Volatile | BUF_ShaderResource, CreateInfoVtx);
+		FBufferRHIRef IndexBufferRHI 	= RHICmdList.CreateIndexBuffer(sizeof(ImDrawIdx), mLocalDrawData.IdxBuffer.GetResourceDataSize(), BUF_Volatile, CreateInfoIdx);
+		FBufferRHIRef VertexBufferRHI 	= RHICmdList.CreateVertexBuffer(mLocalDrawData.VtxBuffer.GetResourceDataSize(), BUF_Volatile | BUF_ShaderResource, CreateInfoVtx);
 		
 		if (VertexShader.IsValid() && PixelShader.IsValid())
 		{
@@ -117,8 +123,11 @@ void FNetImguiSlateElement::DrawRenderThread(FRHICommandListImmediate& RHICmdLis
 			);
 			RHICmdList.SetViewport(L, T, 0, R, B, 1);
 			RHICmdList.SetStreamSource(0, VertexBufferRHI, 0);
-			SetShaderValue(RHICmdList, RHICmdList.GetBoundVertexShader(), VertexShader->ImguiViewProjection, FMatrix44f(ProjectionMatrix));
-			SetShaderValue(RHICmdList, RHICmdList.GetBoundVertexShader(), VertexShader->ImguiParameters, ImguiParams);
+
+			FRHIBatchedShaderParameters& BatchedParameters = RHICmdList.GetScratchShaderParameters();
+			SetShaderValue(BatchedParameters, VertexShader->ImguiViewProjection, FMatrix44f(ProjectionMatrix), 0);
+			SetShaderValue(BatchedParameters, VertexShader->ImguiParameters, ImguiParams, 0);
+			RHICmdList.SetBatchedShaderParameters(RHICmdList.GetBoundVertexShader(), BatchedParameters);
 			
 			for (int i(0); i<mLocalDrawData.CmdLists.Num(); ++i)
 			{
