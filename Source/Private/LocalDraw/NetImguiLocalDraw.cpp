@@ -3,14 +3,16 @@
 #include "NetImguiModule.h"
 #include "CoreMinimal.h"
 
-#if NETIMGUI_LOCALDRAW_ENABLED
+#if NETIMGUI_LOCALDRAW_ENABLED || 1//SF
 
+#include "Engine/Engine.h"
 #include "NetImguiLocalDraw.h"
-#include "Engine.h"
 #include "SceneView.h"
+
 #include "SceneInterface.h"
 #include "SystemSettings.h"
 #include "Engine/GameViewportClient.h"
+#include "Slate/SceneViewport.h"
 #include "Slate/Public/Framework/Application/SlateApplication.h" //SF
 #include "Slate/Public/Framework/Application/SlateUser.h" //SF
 #include "ThirdParty/NetImgui/NetImgui_Api.h"
@@ -33,6 +35,8 @@ TMap<FKey, ImGuiKey> GUnrealKeyToImguiMap;
 // NETIMGUI INPUT PROCESSOR
 //-------------------------------------------------------------------------------------------------
 // Intercept a few inputs before Slate, to shift control to NetImgui when needed
+// Main key forwarding to ImGui is done by the SNetImguiWidget itself, but this is needed
+// to intercept the NetImgui Activation keys/controls combination
 //=================================================================================================
 class FNetImguiInputProcessor : public IInputProcessor
 {
@@ -42,10 +46,11 @@ public:
 	virtual bool			HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override
 	{
 		// Update our list of currently pressed keys
-		static const UNetImguiSettings* NetImguiSettings = GetDefault<UNetImguiSettings>();
+		static const UNetImguiSettings* NetImguiSettings	= GetDefault<UNetImguiSettings>();
+		static const TArray<FKey>* ToggleKeysConfigs[]		= {&NetImguiSettings->ToggleKeys1, &NetImguiSettings->ToggleKeys2, &NetImguiSettings->ToggleKeys3};
 		if( !InKeyEvent.IsRepeat() )
 		{
-			const TArray<FKey>* ToggleKeysConfigs[] = {&NetImguiSettings->ToggleKeys1, &NetImguiSettings->ToggleKeys2, &NetImguiSettings->ToggleKeys3};
+			
 			static_assert(UE_ARRAY_COUNT(ToggleKeysConfigs) == UE_ARRAY_COUNT(KeydownMask));
 			for(int ConfigIndex(0); ConfigIndex < UE_ARRAY_COUNT(ToggleKeysConfigs); ++ConfigIndex)
 			{
@@ -65,7 +70,7 @@ public:
 					bool IsNetImguiToggle = (KeydownMask[ConfigIndex] == (1<<(*ToggleKeys).Num())-1);
 					if( IsNetImguiToggle )
 					{
-						LocalDrawOwner->ToggleWidgetActivated();
+						LocalDrawOwner->ToggleActiveWidgetInput();
 						return true;
 					}
 				}
@@ -75,11 +80,12 @@ public:
 	}
 
 	// Reset Keydown mask after X frames without keypress,
-	// since we do not reliably receive all KeyUp events to unset our mask
+	// since we do not reliably receive all KeyUp events to unset our mask 
+	// (could be intercepted by another input pre processor)
 	virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor)
 	{
 		KeydownFrame++;
-		if ( KeydownFrame == 60 )
+		if ( KeydownFrame == 30 )
 		{
 			KeydownMask[0] = KeydownMask[1] = KeydownMask[2] = 0;
 		}
@@ -91,30 +97,34 @@ protected:
 };
 
 //=================================================================================================
-// 
+// TOGGLE ACTIVE WIDGET INPUT
 //-------------------------------------------------------------------------------------------------
-// 
+// Find active viewport and toggle its NetImgui activation (visibility and input)
 //=================================================================================================
-void FNetImguiLocalDraw::ToggleWidgetActivated(TSharedPtr<SNetImguiWidget> NetImguiWidget)
+void FNetImguiLocalDraw::ToggleActiveWidgetInput()
 {
-	if (!NetImguiWidget.IsValid()) {
-		NetImguiWidget = GetActiveViewportWidget();
-	}
-
+	TSharedPtr<SNetImguiWidget> NetImguiWidget = GetActiveViewportWidget();
 	if( NetImguiWidget.IsValid() )
 	{
 		bool WantWidget = WantImguiInView(NetImguiWidget->ParentGameViewport, true);
 	#if WITH_EDITOR
 		WantWidget |= WantImguiInView(NetImguiWidget->ParentEditorViewport, true);
 	#endif
-		if(WantWidget)
-		{
-			if( NetImguiWidget->ToggleActivation() == false )
-			{
-				// Restore keyboard focus to previous item
-				//FSlateApplication::Get().SetKeyboardFocus(FocusedWidgetLast.Pin(), EFocusCause::Mouse);
-				FSlateApplication::Get().SetAllUserFocus(FocusedWidgetLast.Pin(), EFocusCause::OtherWidgetLostFocus);
-			}
+		NetImguiWidget->ToggleInput(WantWidget);
+	}
+}
+
+//=================================================================================================
+// DISABLE ALL WIDGET ACTIVATION
+//-------------------------------------------------------------------------------------------------
+// As name imply, find all NetImgui Widgets and deactivate them
+//=================================================================================================
+void FNetImguiLocalDraw::DisableAllWidgetActivation()
+{
+	for (auto& NetImguiWidgetIt : WidgetsMap)
+	{
+		if (NetImguiWidgetIt.Value.IsValid()) {
+			NetImguiWidgetIt.Value->ToggleInput(false);
 		}
 	}
 }
@@ -142,7 +152,7 @@ TSharedPtr<SNetImguiWidget> FNetImguiLocalDraw::GetOrCreateNetImguiWidget(const 
 	if( !NetImguiWidget.IsValid() ) {
 		SAssignNew(NetImguiWidget, SNetImguiWidget)
 			.ClientName(inClientName)
-			.FontAtlas(FontSupport.FontAtlas);
+			.FontAtlas(LocalFontSupport.FontAtlas);
 		WidgetsMap.Add(inClientName, NetImguiWidget);
 	}
 	return NetImguiWidget;
@@ -156,8 +166,8 @@ TSharedPtr<SNetImguiWidget> FNetImguiLocalDraw::GetOrCreateNetImguiWidget(const 
 //=================================================================================================
 void FNetImguiLocalDraw::Update()
 {
-	const FNetImguiModule& NetImguiModule				= FNetImguiModule::Get();
-	float FontDPIScaleMax								= 0.f;
+	const FNetImguiModule& NetImguiModule	= FNetImguiModule::Get();
+	float FontDPIScaleMax					= 0.f;
 
 	//---------------------------------------------------------------------------------------------
 	// Makes sure there's a valid Input interceptor
@@ -172,25 +182,21 @@ void FNetImguiLocalDraw::Update()
 	// Create 1 SNetImguiWidget per GameView and update it
 	//---------------------------------------------------------------------------------------------
 	UGameViewportClient* GameViewportClient = GEngine->GameViewport;
-	bool IsNetImguiFocused					= false;
 	while( GameViewportClient )
 	{
 		TSharedPtr<SNetImguiWidget> NetImguiWidget	= GetOrCreateNetImguiWidget(GameViewportClient->GetFName());
 		bool IsFocused								= NetImguiWidget == FSlateApplication::Get().GetUserFocusedWidget(0);
 		bool WantImgui								= WantImguiInView(GameViewportClient, IsFocused);
-		IsNetImguiFocused							|= IsFocused;
 		NetImguiWidget->Update(GameViewportClient, WantImgui);
 		FontDPIScaleMax								= WantImgui ? FMath::Max(NetImguiWidget->GetDPIScale(), FontDPIScaleMax) : FontDPIScaleMax;
-		
-		// Find next GameViewport and detect when we looped back to first item
-		GameViewportClient = GEngine->GetNextPIEViewport(GameViewportClient);
-		GameViewportClient = GameViewportClient == GEngine->GameViewport ? nullptr : GameViewportClient;
+		GameViewportClient							= GEngine->GetNextPIEViewport(GameViewportClient);
+		GameViewportClient							= GameViewportClient == GEngine->GameViewport ? nullptr : GameViewportClient; // Detect loopback
 	}
 
 	//---------------------------------------------------------------------------------------------
 	// Create 1 SNetImguiWidget per Editor Viewport and update it
 	//---------------------------------------------------------------------------------------------
-#if WITH_EDITOR	
+#if WITH_EDITOR
 	FLevelEditorModule& LevelEditorModule 			= FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
 	TSharedPtr<ILevelEditor> LevelEditor 			= LevelEditorModule.GetFirstLevelEditor();
 	TSharedPtr<SLevelViewport> ActiveLevelViewport	= LevelEditorModule.GetFirstActiveLevelViewport();
@@ -206,26 +212,20 @@ void FNetImguiLocalDraw::Update()
 			if( NetImguiWidget.IsValid() )
 			{
 				NetImguiWidget->Update(ViewportWindow.Get(), WantImgui);
-				IsNetImguiFocused	|= NetImguiWidget == FSlateApplication::Get().GetUserFocusedWidget(0);
-				FontDPIScaleMax		= FMath::Max(NetImguiWidget->GetDPIScale(), FontDPIScaleMax);
+				FontDPIScaleMax	= FMath::Max(NetImguiWidget->GetDPIScale(), FontDPIScaleMax);
 			}
 		}
 	}
 #endif
 
-	FontSupport.Update(FontDPIScaleMax);
-	
-	// Save the last non NetImgui focused widget
-	if( !IsNetImguiFocused ){
-		FocusedWidgetLast = FSlateApplication::Get().GetUserFocusedWidget(0);
-	}
+	LocalFontSupport.Update(FontDPIScaleMax);
 }
 //=================================================================================================
 // CONSTRUCTOR
 //=================================================================================================
 FNetImguiLocalDraw::FNetImguiLocalDraw()
 {
-	FontSupport.Initialize();
+	LocalFontSupport.Initialize();
 	
 	// Initialize the Unreal to DearImgui key mapping once
 	struct UnrealToImguiKeyPair { FKey UnrealKey; ImGuiKey ImguiKey; };
@@ -263,7 +263,7 @@ FNetImguiLocalDraw::FNetImguiLocalDraw()
 	
 	{EKeys::Apostrophe, ImGuiKey_Apostrophe},	{EKeys::Comma, ImGuiKey_Comma}, 				{EKeys::Period, ImGuiKey_Period},
 	{EKeys::Slash, ImGuiKey_Slash}, 			{EKeys::Semicolon, ImGuiKey_Semicolon}, 		{EKeys::LeftBracket, ImGuiKey_LeftBracket},
-	{EKeys::BackSpace, ImGuiKey_Backslash},		{EKeys::RightBracket, ImGuiKey_RightBracket}, 	{EKeys::A_AccentGrave, ImGuiKey_GraveAccent},
+	{EKeys::BackSpace, ImGuiKey_Backspace},		{EKeys::RightBracket, ImGuiKey_RightBracket}, 	{EKeys::A_AccentGrave, ImGuiKey_GraveAccent},
 	{EKeys::CapsLock, ImGuiKey_CapsLock}, 		{EKeys::ScrollLock, ImGuiKey_ScrollLock}, 		{EKeys::NumLock, ImGuiKey_NumLock},
 	{EKeys::Pause, ImGuiKey_Pause},
 	
@@ -276,7 +276,20 @@ FNetImguiLocalDraw::FNetImguiLocalDraw()
 	// No 'numpad version' of these keys in Unreal and already added to imgui
 	{EKeys::Subtract, ImGuiKey_Minus},			{EKeys::Equals, ImGuiKey_Equal},
 	//{EKeys::Subtract, ImGuiKey_KeypadSubtract}, {EKeys::Enter, ImGuiKey_KeypadEnter}, {EKeys::Equals, ImGuiKey_KeypadEqual},
+
+	// Gamepad
+	{EKeys::Gamepad_LeftThumbstick, ImGuiKey_GamepadL3},			{EKeys::Gamepad_RightThumbstick, ImGuiKey_GamepadR3},
+	{EKeys::Gamepad_Special_Left, ImGuiKey_GamepadBack}, //SF ????	
+	{EKeys::Gamepad_Special_Right, ImGuiKey_GamepadStart}, //SF ????
+	{EKeys::Gamepad_FaceButton_Bottom, ImGuiKey_GamepadFaceDown},	{EKeys::Gamepad_FaceButton_Right, ImGuiKey_GamepadFaceRight},
+	{EKeys::Gamepad_FaceButton_Left, ImGuiKey_GamepadFaceLeft},		{EKeys::Gamepad_FaceButton_Top, ImGuiKey_GamepadFaceUp},
+	{EKeys::Gamepad_LeftShoulder, ImGuiKey_GamepadL1},				{EKeys::Gamepad_RightShoulder, ImGuiKey_GamepadR1},
+	{EKeys::Gamepad_LeftTrigger, ImGuiKey_GamepadL2},				{EKeys::Gamepad_RightTrigger, ImGuiKey_GamepadR2},
+	{EKeys::Gamepad_DPad_Up, ImGuiKey_GamepadDpadUp},				{EKeys::Gamepad_DPad_Down,ImGuiKey_GamepadDpadDown},
+	{EKeys::Gamepad_DPad_Right, ImGuiKey_GamepadDpadRight},			{EKeys::Gamepad_DPad_Left, ImGuiKey_GamepadDpadLeft},
 	};
+	
+	//SF Add gamepad?
 
 	for (size_t i(0); i<UE_ARRAY_COUNT(KeysMapping); ++i) {
 		GUnrealKeyToImguiMap.Add(KeysMapping[i].UnrealKey, KeysMapping[i].ImguiKey);
@@ -296,7 +309,7 @@ FNetImguiLocalDraw::~FNetImguiLocalDraw()
 	if( FSlateApplication::IsInitialized() ){
 		FSlateApplication::Get().UnregisterInputPreProcessor(InputProcessor);
 	}
-	FontSupport.Terminate();
+	LocalFontSupport.Terminate();
 	WidgetsMap.Reset();
 	InputProcessor = nullptr;
 }
@@ -309,108 +322,45 @@ FNetImguiLocalDraw::~FNetImguiLocalDraw()
 TSharedPtr<SNetImguiWidget> FNetImguiLocalDraw::GetActiveViewportWidget()
 {
 	TSharedPtr<SNetImguiWidget> ActiveWidget;
+	
+	// If a NetImguiWidget is in focus, return it
+	TSharedPtr<SWidget> SlateActiveWidget = FSlateApplication::Get().GetUserFocusedWidget(0);
+	for(const auto& NetImguiIt : WidgetsMap)
+	{
+		if (NetImguiIt.Value.Get() == SlateActiveWidget.Get())
+		{
+			return NetImguiIt.Value;
+		}
+	}
+
+	// Iterate all Game Viewports and find first active one
+	UGameViewportClient* GameViewportClient = GEngine->GameViewport;
+	while( GameViewportClient )
+	{
+		if( GameViewportClient->IsFocused(GameViewportClient->GetGameViewport()->GetViewport()) )
+		{
+			return GetNetImguiWidget(GameViewportClient->GetFName());
+		}
+		// Go to next GameViewport and detect when we looped back to first item
+		GameViewportClient	= GEngine->GetNextPIEViewport(GameViewportClient);
+		GameViewportClient	= GameViewportClient == GEngine->GameViewport ? nullptr : GameViewportClient;
+	}
+	
 #if WITH_EDITOR	
 	// Find NetImgui Widget associated with active Editor Viewport
 	FLevelEditorModule& LevelEditorModule 			= FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
 	TSharedPtr<SLevelViewport> ActiveLevelViewport	= LevelEditorModule.GetFirstActiveLevelViewport();
 	if (ActiveLevelViewport.IsValid() && !ActiveLevelViewport->IsPlayInEditorViewportActive())
 	{
-		ActiveWidget = GetNetImguiWidget(ActiveLevelViewport->GetConfigKey());
+		return GetNetImguiWidget(ActiveLevelViewport->GetConfigKey());
 	}
 #endif
 
-	// Iterate all Game Viewports to find the active one
-	TSharedPtr<SWindow> ActiveWindow		= FSlateApplication::Get().GetActiveTopLevelWindow();
-	UGameViewportClient* GameViewportClient = GEngine->GameViewport;
-	while( GameViewportClient && !ActiveWidget.IsValid() )
-	{
-		if( GameViewportClient->GetWindow() == ActiveWindow )
-		{
-			ActiveWidget = GetNetImguiWidget(GameViewportClient->GetFName());
-		}
-		// Go to next GameViewport and detect when we looped back to first item
-		GameViewportClient	= GEngine->GetNextPIEViewport(GameViewportClient);
-		GameViewportClient	= GameViewportClient == GEngine->GameViewport ? nullptr : GameViewportClient;
-	}
-
-	return ActiveWidget;
-}
-#if 0
-//=================================================================================================
-// IS GAME INPUT FOCUSED
-//-------------------------------------------------------------------------------------------------
-// Return true if a NetImgui Widget has the user focus
-//=================================================================================================
-bool FNetImguiLocalDraw::IsGameInputFocused()
-{
-	return FocusedWidgetNetImgui == FSlateApplication::Get().GetKeyboardFocusedWidget();
+	return nullptr;
 }
 
 //=================================================================================================
-// GAME INPUT SET
-//-------------------------------------------------------------------------------------------------
-// Either set the focus to the NetImgui Widget of the active Slate window, or restore it to
-// previous widget that we took the focused from.
-//=================================================================================================
-void FNetImguiLocalDraw::GameInputSet(bool Enable)
-{
-	FSlateApplication& SlateApp			= FSlateApplication::Get();
-	
-	//TWeakPtr<SWidget> FocusedWidgetPtr	= SlateApp.GetKeyboardFocusedWidget();
-	//const SWidget* FocusedWidget		= FocusedWidgetPtr.IsValid() ? FocusedWidgetPtr.Pin().Get() : nullptr;
-	//slateApp.SetAllUserFocus(*netimguiWidget, EFocusCause::SetDirectly);
-	//FSlateUser* slateUser = slateApp.GetCursorUser().Get();
-	//slateUser->ReleaseAllCapture();
-	//ReleaseCursorCapture
-
-	if( Enable )
-	{
-		TSharedPtr<SWindow> ActiveWindow		= SlateApp.GetActiveTopLevelWindow();
-		UGameViewportClient* GameViewportClient = GEngine->GameViewport;
-		while( GameViewportClient )
-		{
-			if( GameViewportClient->GetWindow() == ActiveWindow )
-			{
-				TSharedPtr<SNetImguiWidget> NetImguiWidget = GetNetImguiWidget(GameViewportClient->GetFName());
-				if(NetImguiWidget.IsValid())
-				{
-					bool WantImgui	= WantImguiInView(GameViewportClient, true);
-					if( WantImgui )
-					{
-						FocusedWidgetNetImgui = NetImguiWidget;
-						NetImguiWidget->SetVisibility(EVisibility::Visible);
-						SlateApp.ResetToDefaultPointerInputSettings();
-						SlateApp.SetKeyboardFocus(NetImguiWidget);
-						return;
-					}
-				}
-			}
-			// Got to next GameViewport and detect when we looped back to first item
-			GameViewportClient	= GEngine->GetNextPIEViewport(GameViewportClient);
-			GameViewportClient	= GameViewportClient == GEngine->GameViewport ? nullptr : GameViewportClient;
-		}
-	}
-	else if( IsGameInputFocused() && FocusedWidgetLast.IsValid() )
-	{
-		SlateApp.ClearKeyboardFocus(EFocusCause::SetDirectly);
-		SlateApp.SetKeyboardFocus(FocusedWidgetLast.Pin(), EFocusCause::Mouse);
-		FocusedWidgetNetImgui = nullptr;
-	}
-}
-
-//=================================================================================================
-// GAME INPUT TOGGLE
-//-------------------------------------------------------------------------------------------------
-// Toggle the NetImgui Widget input focus
-//=================================================================================================
-void FNetImguiLocalDraw::GameInputToggle()
-{
-	GameInputSet(!IsGameInputFocused());
-}
-#endif
-
-//=================================================================================================
-// xxxWantImguiInGameView
+// XXXX WantImguiInGameView
 //-------------------------------------------------------------------------------------------------
 // Handle requests of knowing if we should use local Dear Imgui content in a game viewport.
 // Default behavior is to always enabled local content.
@@ -436,7 +386,7 @@ bool FNetImguiLocalDraw::WantImguiInView(const UGameViewportClient* GameClient, 
 	bool ForceDebugOn		= GSystemSettings.GetForce1Mask().OnScreenDebug;
 	bool ValidRemote		= !NetImguiSettings->RemoteHideLocal || !NetImgui::IsConnected(); //SF TODO affect only the 1 selected context?
 	bool ValidVisibility	= (NetImguiSettings->LocalVisibilityGame == ENetImguiVisibility::Always) ||
-							  (NetImguiSettings->LocalVisibilityGame == ENetImguiVisibility::Activated) || // 'Activated' visibility controlled in widget's update
+							  (NetImguiSettings->LocalVisibilityGame == ENetImguiVisibility::HasInput) || // 'HasInput' visibility controlled in widget's update
 							  (NetImguiSettings->LocalVisibilityGame == ENetImguiVisibility::Focused && HasInputFocus);
 	bool ValidShowFlag		= !NetImguiSettings->LocalUseOnScreenDebugFlag || ForceDebugOn || (!ForceDebugOff && GameClient->EngineShowFlags.OnScreenDebug);
 	
@@ -444,7 +394,7 @@ bool FNetImguiLocalDraw::WantImguiInView(const UGameViewportClient* GameClient, 
 }
 
 //=================================================================================================
-// xxxWantImguiInEditorView
+// XXXX WantImguiInEditorView
 //-------------------------------------------------------------------------------------------------
 // Handle requests of knowing if we should use local Dear Imgui content in a editor viewport.
 // Default behavior is to enable it on view set to perspective and without PIE current active.
@@ -471,47 +421,13 @@ bool FNetImguiLocalDraw::WantImguiInView(const SLevelViewport* EditorViewport, b
 	bool ForceDebugOn		= GSystemSettings.GetForce1Mask().OnScreenDebug;
 	bool ValidRemote		= !NetImguiSettings->RemoteHideLocal || !NetImgui::IsConnected(); //SF TODO affect only the 1 selected context?
 	bool ValidVisibility	= (NetImguiSettings->LocalVisibilityEditor == ENetImguiVisibility::Always) ||
-							  (NetImguiSettings->LocalVisibilityEditor == ENetImguiVisibility::Activated) || // 'Activated' visibility controlled in widget's update
+							  (NetImguiSettings->LocalVisibilityEditor == ENetImguiVisibility::HasInput) || // 'HasInput' visibility controlled in widget's update
 							  (NetImguiSettings->LocalVisibilityEditor == ENetImguiVisibility::Focused && HasViewportFocus);
 	bool ValidShowFlag		= !NetImguiSettings->LocalUseOnScreenDebugFlag || ForceDebugOn || (!ForceDebugOff && EditorViewport->GetLevelViewportClient().EngineShowFlags.OnScreenDebug);
 	return NetImguiSettings->Show && ValidVisibility && ValidShowFlag && ValidRemote && WantImguiInEditorViewFN(*EditorViewport, HasViewportFocus);
 }
 #endif // #if WITH_EDITOR
 
-//=================================================================================================
-// INTERCEPT REMOTE INPUT
-//-------------------------------------------------------------------------------------------------
-// Option to capture the input usually mean for remote drawing, to send it to the active local
-// NetImgui Widget instead. Basically letting the Remote Server control the local display.
-//=================================================================================================
-void FNetImguiLocalDraw::InterceptRemoteInput()
-{	
-	//SF insert NetImgui internet here
-	return;
-#if 0
-	ImGuiContext* remoteContext = ImGui::GetCurrentContext();
-	ImGuiIO& remoteIO			= ImGui::GetIO();
-	
-	//TMap<void*, ImGuiContext*> ContextsMap2;
-	for (auto& context : ContextsMap) {
-		ImGui::SetCurrentContext(context.Value);
-		ImGuiIO& localIO		= ImGui::GetIO();
-		localIO.MouseDrawCursor = false;
-		if (ActiveContextIndex == 0) {
-			localIO.MouseDrawCursor = true;
-			float mouseX = remoteIO.MousePos.x / remoteIO.DisplaySize.x * localIO.DisplaySize.x;
-			float mouseY = remoteIO.MousePos.y / remoteIO.DisplaySize.y * localIO.DisplaySize.y;
-			localIO.AddMousePosEvent(mouseX, mouseY);
-			for (uint32 i = 0; i < UE_ARRAY_COUNT(remoteIO.MouseDown); ++i) {
-				localIO.AddMouseButtonEvent(i, remoteIO.MouseDown[i]);
-			}
-			
-			break;
-		}
-	}
-	ImGui::SetCurrentContext(remoteContext);
-#endif
-}
 //=================================================================================================
 // FONT BULK DATA CLASS
 //-------------------------------------------------------------------------------------------------
@@ -525,13 +441,13 @@ void FNetImguiLocalDraw::FFontBulkData::Init(const void* InData, uint32 InWidth,
 	Data.Append((uint8*)InData, Width*Height);
 }
 
-void FNetImguiLocalDraw::FFontSuport::Initialize()
+void FNetImguiLocalDraw::FLocalFontSuport::Initialize()
 {
 	Terminate();
 	FontAtlas = IM_NEW(ImFontAtlas);
 }
 
-void FNetImguiLocalDraw::FFontSuport::Terminate()
+void FNetImguiLocalDraw::FLocalFontSuport::Terminate()
 {
 	FontDPIScale	= 0.f;
 	TextureRef		= nullptr;
@@ -542,7 +458,7 @@ void FNetImguiLocalDraw::FFontSuport::Terminate()
 	}
 }
 
-void FNetImguiLocalDraw::FFontSuport::Update(float wantedFontDPIScale)
+void FNetImguiLocalDraw::FLocalFontSuport::Update(float wantedFontDPIScale)
 {
 	if ( FNetImguiModule::UpdateFont(FontAtlas, FontDPIScale, wantedFontDPIScale) )
 	{

@@ -264,8 +264,7 @@ void FNetImguiModule::Update()
 	if( NetImgui::IsConnected() )
 #endif
 	{
-		NetImgui::NewFrame(NETIMGUI_FRAMESKIP_ENABLED);	
-		LocalDrawSupport->InterceptRemoteInput();
+		NetImgui::NewFrame(NETIMGUI_FRAMESKIP_ENABLED);
 		if (NetImgui::IsDrawingRemote())
 		{
 			//----------------------------------------------------------------------------
@@ -358,7 +357,6 @@ void FNetImguiModule::Update()
 			}
 		#endif	// NETIMGUI_DEMO_IMGUI_ENABLED
 
-		
 			//----------------------------------------------------------------------------
 			// Ask all listener to draw their Dear ImGui content
 			//----------------------------------------------------------------------------
@@ -416,8 +414,7 @@ bool FNetImguiModule::UpdateFont(ImFontAtlas* fontAtlas, float fontDPIScalePrevi
 	#if NETIMGUI_FONT_JAPANESE
 		AddFontGroup(TEXT("日本語"),				fontAtlas, 32.f, fontDPIScaleNeeded, IPAexMincho_compressed_data,		IPAexMincho_compressed_size,		true, false, fontAtlas->GetGlyphRangesJapanese());
 	#endif
-		// ... add extra fonts here (and add extra matching entries in 'FNetImguiModule::eFont' enum)
-	
+		// ... add extra fonts here (and add extra matching entries in 'FNetImguiModule::eFont' enum)	
 
 		//---------------------------------------------------------------------------------------------
 		// 1. Build the Font, 
@@ -513,17 +510,16 @@ void FNetImguiModule::StartupModule()
 	FString PluginShaderDir = FPaths::Combine(IPluginManager::Get().FindPlugin(TEXT("Netimgui"))->GetBaseDir(), TEXT("Shaders"));
 	AddShaderSourceDirectoryMapping(TEXT("/Plugin/UnrealNetimgui"), PluginShaderDir);
 	NetImgui::Startup();
-	mpContext					= ImGui::CreateContext();
+	RemoteImContext					= ImGui::CreateContext();
 	ImGuiIO& io					= ImGui::GetIO();
 	io.ConfigFlags				|= ImGuiConfigFlags_DockingEnable;
-	ImGui::SetCurrentContext(mpContext);
+	ImGui::SetCurrentContext(RemoteImContext);
 
 #if NETIMGUI_IMPLOT_ENABLED
-	mpImPlotContext				= ImPlot::CreateContext();
+	RemoteImPlotContext				= ImPlot::CreateContext();
 #endif
 	
 	UpdateFont(io.Fonts, 0.f, 1.f);
-	mFontDPIScale = 1.f;
 
 	//---------------------------------------------------------------------------------------------
 	// Setup connection to wait for netImgui server to reach us
@@ -552,7 +548,6 @@ void FNetImguiModule::StartupModule()
 
 	UpdateCallbackCB = FCoreDelegates::OnEndFrame.AddRaw(this, &FNetImguiModule::Update);
 	LocalDrawSupport = MakeUnique<FNetImguiLocalDraw>();
-
 #endif //NETIMGUI_ENABLED
 }
 
@@ -574,22 +569,37 @@ void FNetImguiModule::ShutdownModule()
 	NetImgui::Shutdown();
 
 #if NETIMGUI_IMPLOT_ENABLED
-	ImPlot::DestroyContext(mpImPlotContext);
-	mpImPlotContext = nullptr;
+	ImPlot::DestroyContext(RemoteImPlotContext);
+	RemoteImPlotContext = nullptr;
 #endif
 
 #if NETIMGUI_NODE_EDITOR_ENABLED
 	NodeEditorDemo::Release();
 #endif
 
-	ImGui::DestroyContext(mpContext);
-	mpContext = nullptr;
+	ImGui::DestroyContext(RemoteImContext);
+	RemoteImContext = nullptr;
 
 #if IM_UNREAL_COMMAND_ENABLED
 	ImUnrealCommand::Destroy(spImUnrealCommandContext);
 #endif
 
 #endif //NETIMGUI_ENABLED
+}
+
+//=================================================================================================
+// IsInputActive
+//-------------------------------------------------------------------------------------------------
+// Let us know if the current imgui context has input enabled
+//=================================================================================================
+bool FNetImguiModule::IsInputActive()const
+{
+	if( NetImgui::IsDrawingRemote() )
+	{
+		return true;
+	}
+
+	//SF
 }
 
 // Font display

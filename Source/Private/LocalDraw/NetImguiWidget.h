@@ -14,12 +14,11 @@ public:
 
 	virtual 				~SNetImguiWidget();	
 	void 					Update(class UGameViewportClient* gameViewport, bool inVisible);
-	bool					ToggleActivation();
+	void					ToggleInput(bool IsWantedWidget);
+	bool					HasInput()const;
 	float					GetDPIScale() const;
-	inline bool				IsActivated() const { return Activated; }
-	
 
-	// Widget/Leaftwidget Interface
+	// Widget/LeaftWidget Interface
 	void 					Construct(const FArguments& InArgs);
 	virtual FReply 			OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply 			OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -27,6 +26,7 @@ public:
 	virtual FReply 			OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply 			OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent) override;
 	virtual FReply 			OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply			OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
 	virtual bool 			SupportsKeyboardFocus() const override { return true; }
 	virtual void 			Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 	virtual int32 			OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
@@ -35,18 +35,19 @@ public:
 	inline ImGuiContext*	GetContext(){ return ImguiContext; }
 
 protected:
-	float					GetDrawVerticalOffset() const;
+	inline float			GetDrawVerticalOffset() const;
 
 	TSharedPtr<class FNetImguiSlateElement, ESPMode::ThreadSafe> NetImguiDrawers[3];
-	const UGameViewportClient* ParentGameViewport 	= nullptr;
-	mutable int DrawCounter							= 0;
-	mutable FVector4f ImguiParameters 				= FVector4f(1, 0, 0, 0);
-	ImGuiContext* ImguiContext 						= nullptr;
-	bool Activated									= false;
-	float FontScale 								= 1.f;
+	UGameViewportClient* ParentGameViewport = nullptr;
+	mutable int DrawCounter					= 0;
+	mutable FVector4f ImguiParameters 		= FVector4f(1, 0, 0, 0);
+	ImGuiContext* ImguiContext 				= nullptr;
+	//bool Activated							= false;
+	float FontScale 						= 1.f;
 	FName ClientNameID;
     TArray<char> ClientName;
 	TArray<char> ClientIniName;
+	TWeakPtr<SWidget> FocusedWidgetLast;	// Keep track of the last non NetImguiWidget focused, to restore input to it when toggled
 	friend class FNetImguiLocalDraw;
 
 #if WITH_EDITOR

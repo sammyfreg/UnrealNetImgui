@@ -123,6 +123,15 @@ public:
 	*/
 	virtual bool IsConnected()const;
 
+	/**
+	* Tell us if the current ImGui context has Input enabled. 
+	* Always true when currently drawing for the remote imgui context.
+	* True when currently drawing for the local imgui context and its widget has focus
+	*
+	* @return True if the current ImGui context is receiving inputs 
+	*/
+	virtual bool IsInputActive()const;
+
 	/**	
 	* Use this method when drawing Dear ImGui content on the gamethread.
 	* It is not required when drawing is happening inside a 'OnDrawImgui' callback.
@@ -146,10 +155,9 @@ protected:
 	
 	FDelegateHandle							UpdateCallbackCB;
 	TUniquePtr<class FNetImguiLocalDraw>	LocalDrawSupport;
-	float									mFontDPIScale = 0.f;
-	ImGuiContext*							mpContext = nullptr;
+	ImGuiContext*							RemoteImContext = nullptr;
 #if NETIMGUI_IMPLOT_ENABLED
-	ImPlotContext*							mpImPlotContext = nullptr;
+	ImPlotContext*							RemoteImPlotContext = nullptr; //SF move this to per context?
 #endif
 #endif //NETIMGUI_ENABLED
 };
@@ -169,6 +177,7 @@ FNetImguiModule& FNetImguiModule::Get()
 	return *sLoadedModulePtr;
 }
 
+//SF Revisit with change to local draw
 bool FNetImguiModule::IsDrawing()
 {
 	checkSlow(IsInGameThread());
@@ -179,7 +188,7 @@ bool FNetImguiModule::IsDrawing()
 		// is recreated. This means that the game code will call original dll but this module object 
 		// will use reloaded dll ImGui functions. To prevent issue with destroyed context, we are 
 		// making sure that the original dll knows about this module's newly created context here.
-		ImGui::SetCurrentContext(Get().mpContext);
+		ImGui::SetCurrentContext(Get().RemoteImContext);
 		return true;
 	}
 	return false;

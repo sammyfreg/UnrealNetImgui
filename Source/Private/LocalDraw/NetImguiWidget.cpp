@@ -3,12 +3,27 @@
 #include "NetImguiModule.h"
 #include "CoreMinimal.h"
 
-#if NETIMGUI_LOCALDRAW_ENABLED
+#if NETIMGUI_LOCALDRAW_ENABLED || 1 //SF
 #include "Slate/Public/Framework/Application/SlateApplication.h"
 #include "Slate/Public/Framework/Application/SlateUser.h"
 #include "NetImguiRender.h"
 
 #pragma optimize("", off) //SF
+
+//=================================================================================================
+// GET DRAW VERTICAL OFFSET (inline)
+//-------------------------------------------------------------------------------------------------
+// Used to avoid drawing over Editor tool icons at the top of the viewport
+//=================================================================================================
+float SNetImguiWidget::GetDrawVerticalOffset() const
+{
+#if WITH_EDITOR
+	static const UNetImguiSettings* NetImguiSettings = GetDefault<UNetImguiSettings>();
+	if( ParentEditorViewport && NetImguiSettings->LocalVisibilityEditor != ENetImguiVisibility::HasInput )
+		return 32.f;
+#endif
+	return 0.f;
+}
 
 //=================================================================================================
 // DESTRUCTOR
@@ -18,27 +33,53 @@
 SNetImguiWidget::~SNetImguiWidget()
 {
 	ImGui::DestroyContext(ImguiContext);
-};
+}
 
 //=================================================================================================
-// TOGGLE ACTIVATION
+// HAS INPUT
 //-------------------------------------------------------------------------------------------------
-// 
+// True if Widget is focused and receiving inputs
 //=================================================================================================
-bool SNetImguiWidget::ToggleActivation()
+bool SNetImguiWidget::HasInput() const 
+{ 
+	return FSlateApplication::Get().GetUserFocusedWidget(0).Get() == this;
+}
+
+//=================================================================================================
+// TOGGLE INPUT
+//-------------------------------------------------------------------------------------------------
+// Switch focus of this Widget On/Off to enable input
+// Try restoring focus to previous item when deactivating the widget
+//=================================================================================================
+void SNetImguiWidget::ToggleInput(bool IsWantedWidget)
 {
-	if (FSlateApplication::Get().GetUserFocusedWidget(0) != SharedThis(this))
+	if (IsWantedWidget && !HasInput() )
 	{
-		Activated = true;
+		FocusedWidgetLast	= FSlateApplication::Get().GetUserFocusedWidget(0);
 		SetVisibility(EVisibility::Visible);
 		FSlateApplication::Get().ResetToDefaultPointerInputSettings();
 		FSlateApplication::Get().SetUserFocus(0, SharedThis(this));
 	}
-	else
+	else if( FocusedWidgetLast.IsValid() )
 	{
-		Activated = !Activated;
+		FSlateApplication::Get().SetUserFocus(0, FocusedWidgetLast.Pin(), EFocusCause::SetDirectly);
 	}
-	return Activated;
+}
+
+//=================================================================================================
+// GET DPI SCALE
+//-------------------------------------------------------------------------------------------------
+// Return the DPIScale used by associated Viewport
+//=================================================================================================
+float SNetImguiWidget::GetDPIScale() const
+{
+#if WITH_EDITOR
+	return	ParentGameViewport		? ParentGameViewport->GetDPIScale()
+									: ParentEditorViewport	? ParentEditorViewport->GetViewportClient()->GetDPIScale()
+									: 1.f;
+#else
+	return	ParentGameViewport		? ParentGameViewport->GetDPIScale() : 1.f;
+#endif
 }
 
 //=================================================================================================
@@ -54,10 +95,22 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 		ImGuiIO& io		= ImGui::GetIO();
 		io.DeltaTime	= InDeltaTime;
 		
-		// Ignore mouse when we do not have access to it
-		if (FSlateApplication::Get().GetCursorUser().Get()->HasAnyCapture()){
+		//bool FSlateApplication::Get().IsMouseAttached() const { return PlatformApplication.IsValid() ? PlatformApplication->IsMouseAttached() : false; }
+		//bool FSlateApplication::Get().IsGamepadAttached() const { return PlatformApplication.IsValid() ? PlatformApplication->IsGamepadAttached() : false; }
+		io.ConfigFlags		= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad;
+		io.BackendFlags		= ImGuiBackendFlags_HasGamepad;
+
+		if (!HasInput())
+		{
+			io.ClearEventsQueue();
+			io.ClearInputCharacters();
+			io.ClearInputKeys();
 			io.AddMousePosEvent(-1.f, -1.f);
 		}
+		// Ignore mouse when we do not have access to it
+		//if (FSlateApplication::Get().GetCursorUser().Get()->HasAnyCapture()){
+		//	io.AddMousePosEvent(-1.f, -1.f);
+		//}
 		else{
 			const FSlateRenderTransform screenToImguiCoord = AllottedGeometry.GetAccumulatedRenderTransform();
 			FVector2f mousePos	= screenToImguiCoord.Inverse().TransformPoint(FSlateApplication::Get().GetCursorPos());
@@ -71,7 +124,7 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 		
 		// We share 1 Font Atlas between all local views, using the highest DPI scaling detected
 		// We then size down the font drawing to match this view expected DPI
-		const auto* fontUnrealData = reinterpret_cast<FNetImguiLocalDraw::FFontSuport*>(ImGui::GetIO().Fonts->TexID);
+		const auto* fontUnrealData = reinterpret_cast<FNetImguiLocalDraw::FLocalFontSuport*>(ImGui::GetIO().Fonts->TexID);
 		for (auto font : fontUnrealData->FontAtlas->Fonts){
 			font->Scale = (GetDPIScale()*FontScale) / fontUnrealData->FontDPIScale;
 		}
@@ -81,13 +134,18 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 		//SetFlag(IO.BackendFlags, ImGuiBackendFlags_HasGamepad, InputState.HasGamepad());
 
 		ImGui::NewFrame();
-		if( ImGui::BeginMainMenuBar() ){
+#if 0 //SF
+		if( ImGui::BeginMainMenuBar() )
+		{
+			//SF Call callbacks here
+			//SF test
+		
 			if (ImGui::BeginMenu("NetImgui")) {
 				ImGui::SliderFloat("Opacity", &ImguiParameters.X, 0.1f, 1.f);
 				ImGui::SliderFloat("Font scale", &FontScale, 0.5f, 2.f);
 				ImGui::EndMenu();
 			}
-			//SF test
+			
 			if( ImGui::IsItemHovered() ){
 				ImGuiWindowFlags windowFlags 	= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMouseInputs 
 												| ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
@@ -104,9 +162,9 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 				ImGui::End();
 				ImGui::PopStyleColor(2);
 			}
-
 			ImGui::EndMainMenuBar();
 		}
+#endif //SF
 		ImGui::SetNextWindowPos(ImVec2(0,0), ImGuiCond_Once);
 		ImGui::ShowDemoWindow(nullptr);
 		ImGui::Render();
@@ -130,7 +188,7 @@ int32 SNetImguiWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	// Add DebugDraw Item for the 'Dear ImGui' content of this viewport
 	//---------------------------------------------------------------------------------------------
 	TSharedPtr<FNetImguiSlateElement, ESPMode::ThreadSafe> NetImguiDrawer = NetImguiDrawers[DrawCounter++ % 3];
-	auto* fontUnrealData = reinterpret_cast<FNetImguiLocalDraw::FFontSuport*>(ImGui::GetIO().Fonts->TexID);
+	auto* fontUnrealData = reinterpret_cast<FNetImguiLocalDraw::FLocalFontSuport*>(ImGui::GetIO().Fonts->TexID);
 	//SF BLACK TEXTURE support
 	if (NetImguiDrawer->Update(fontUnrealData->TextureRef, fontUnrealData->TextureRef, ImguiContext, imguiRect, ImguiParameters)) {
 		FSlateDrawElement::MakeCustom(OutDrawElements, LayerId++, NetImguiDrawer);
@@ -158,9 +216,17 @@ void SNetImguiWidget::Update(SLevelViewport* LevelViewport, bool Visible)
 	// When visibility is configured to 'Activated' in plugin project settings,
 	// we manage visibility here instead of 'WantImguiInView()' to make sure the widget is created,
 	// otherwise, we could never activate it
-	Visible &= NetImguiSettings->LocalVisibilityEditor != ENetImguiVisibility::Activated || IsActivated();
+	Visible &= NetImguiSettings->LocalVisibilityEditor != ENetImguiVisibility::HasInput || HasInput();
 	if( Visible != GetVisibility().IsVisible() ){
 		SetVisibility(Visible ? EVisibility::Visible : EVisibility::Hidden);
+	}
+
+	//SF
+	FLevelEditorModule& LevelEditorModule 			= FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
+	TSharedPtr<SLevelViewport> ActiveLevelViewport	= LevelEditorModule.GetFirstActiveLevelViewport();
+	if( ParentEditorViewport == ActiveLevelViewport.Get() && !HasInput() ) //FSlateApplication::Get().GetUserFocusedWidget(0) != SharedThis(this))
+	{
+		FocusedWidgetLast	= FSlateApplication::Get().GetUserFocusedWidget(0);
 	}
 }
 #endif //WITH_EDITOR
@@ -168,8 +234,8 @@ void SNetImguiWidget::Update(SLevelViewport* LevelViewport, bool Visible)
 //=================================================================================================
 // UPDATE (Game View)
 //-------------------------------------------------------------------------------------------------
-// Called once per frame, to make sure the widget is assigned to the Viewport and
-// adjust its visibility / dpi 
+// Called once per frame, to make sure the widget is assigned to the right Viewport and
+// adjust its visibility
 //=================================================================================================
 void SNetImguiWidget::Update(UGameViewportClient* GameViewport, bool Visible)
 {
@@ -185,9 +251,15 @@ void SNetImguiWidget::Update(UGameViewportClient* GameViewport, bool Visible)
 
 	// Visibility when settings set to 'Activated' visibility mode, 
 	// is managed here instead of in 'WantImguiInView()', otherwise the widget would never be created
-	Visible &= NetImguiSettings->LocalVisibilityGame != ENetImguiVisibility::Activated || IsActivated();
+	Visible &= NetImguiSettings->LocalVisibilityGame != ENetImguiVisibility::HasInput || HasInput();
 	if( Visible != GetVisibility().IsVisible() ){
 		SetVisibility(Visible ? EVisibility::Visible : EVisibility::Hidden);
+	}
+	
+	//SF
+	 if ( ParentGameViewport->IsFocused(ParentGameViewport->GetGameViewport()->GetViewport()) && !HasInput() )
+	{
+		FocusedWidgetLast	= FSlateApplication::Get().GetUserFocusedWidget(0);
 	}
 }
 
@@ -209,40 +281,12 @@ void SNetImguiWidget::Construct(const FArguments& InArgs)
 	NetImguiScopedContext scopedContext(ImguiContext);
 	ImGui::GetIO().IniFilename		= ClientIniName.GetData();
 	ImGui::GetIO().MouseDrawCursor	= false;
+	ImGui::GetIO().ConfigFlags		= ImGuiConfigFlags_DockingEnable;
+	ImGui::GetIO().BackendFlags		= 0;
+
 	NetImguiDrawers[0] = MakeShareable(new FNetImguiSlateElement());
 	NetImguiDrawers[1] = MakeShareable(new FNetImguiSlateElement());
 	NetImguiDrawers[2] = MakeShareable(new FNetImguiSlateElement());
-}
-
-//=================================================================================================
-// 
-//-------------------------------------------------------------------------------------------------
-// 
-//=================================================================================================
-float SNetImguiWidget::GetDPIScale() const
-{
-#if WITH_EDITOR
-	return	ParentGameViewport		? ParentGameViewport->GetDPIScale()
-									: ParentEditorViewport	? ParentEditorViewport->GetViewportClient()->GetDPIScale()
-									: 1.f;
-#else
-	return	ParentGameViewport		? ParentGameViewport->GetDPIScale() : 1.f;
-#endif
-}
-
-//=================================================================================================
-// 
-//-------------------------------------------------------------------------------------------------
-// Used to avoid drawing over Editor tool icons at the top of the viewport
-//=================================================================================================
-float SNetImguiWidget::GetDrawVerticalOffset() const
-{
-#if WITH_EDITOR
-	static const UNetImguiSettings* NetImguiSettings = GetDefault<UNetImguiSettings>();
-	if( ParentEditorViewport && NetImguiSettings->LocalVisibilityEditor != ENetImguiVisibility::Activated )
-		return 32.f;
-#endif
-	return 0.f;
 }
 
 //=================================================================================================
@@ -279,21 +323,27 @@ FCursorReply SNetImguiWidget::OnCursorQuery(const FGeometry& MyGeometry, const F
 //=================================================================================================
 FReply SNetImguiWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	NetImguiScopedContext scopedContext(ImguiContext);
-	int imguiMouse = UnrealToImguiMouseButton(MouseEvent.GetEffectingButton());
-	if (imguiMouse != -1) {
-		ImGui::GetIO().AddMouseButtonEvent(imguiMouse, true);
-		return ImGui::GetIO().WantCaptureMouse ? FReply::Handled().LockMouseToWidget(SharedThis(this)) : FReply::Unhandled();
+	int ImguiMouse = UnrealToImguiMouseButton(MouseEvent.GetEffectingButton());
+	if (ImguiMouse != -1) 
+	{
+		NetImguiScopedContext scopedContext(ImguiContext);
+		if( ImGui::GetIO().WantCaptureMouse )
+		{
+			ImGui::GetIO().AddMouseButtonEvent(ImguiMouse, true);
+			return FReply::Handled().LockMouseToWidget(SharedThis(this));
+		}
 	}
 	return FReply::Unhandled();
 }
 
 FReply SNetImguiWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	NetImguiScopedContext scopedContext(ImguiContext);
-	int imguiMouse = UnrealToImguiMouseButton(MouseEvent.GetEffectingButton());
-	if (imguiMouse != -1) {
-		ImGui::GetIO().AddMouseButtonEvent(imguiMouse, false);
+	int ImguiMouse = UnrealToImguiMouseButton(MouseEvent.GetEffectingButton());
+	if (ImguiMouse != -1) 
+	{
+		//SF improve the release
+		NetImguiScopedContext scopedContext(ImguiContext);
+		ImGui::GetIO().AddMouseButtonEvent(ImguiMouse, false);
 		return ImGui::GetIO().WantCaptureMouse ? FReply::Handled().ReleaseMouseLock() : FReply::Unhandled();
 	}
 	return FReply::Unhandled();
@@ -313,9 +363,9 @@ FReply SNetImguiWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 {
 	//SF Handle Copy/Paste?
 	//FGenericPlatformMisc::ClipboardCopy
-	NetImguiScopedContext scopedContext(ImguiContext);
 	ImGuiKey imguiKey = UnrealToImguiKey(InKeyEvent.GetKey());
 	if (imguiKey != ImGuiKey_None) {
+		NetImguiScopedContext scopedContext(ImguiContext);
 		ImGui::GetIO().AddKeyEvent(imguiKey, true);
 		return FReply::Handled();
 	}
@@ -324,9 +374,9 @@ FReply SNetImguiWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 
 FReply SNetImguiWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	NetImguiScopedContext scopedContext(ImguiContext);
 	ImGuiKey imguiKey = UnrealToImguiKey(InKeyEvent.GetKey());
 	if (imguiKey != ImGuiKey_None) {
+		NetImguiScopedContext scopedContext(ImguiContext);
 		ImGui::GetIO().AddKeyEvent(imguiKey, false);
 		return FReply::Handled();
 	}
@@ -345,6 +395,25 @@ FReply SNetImguiWidget::OnKeyChar(const FGeometry& MyGeometry, const FCharacterE
 	return FReply::Unhandled();
 }
 
+FReply SNetImguiWidget::OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent)
+{
+	auto KeyDetails		= EKeys::GetKeyDetails(InAnalogInputEvent.GetKey()); //SF
+	float AnalogValue	= InAnalogInputEvent.GetAnalogValue();
+	ImGuiKey GamepadKey = InAnalogInputEvent.GetKey() == EKeys::Gamepad_LeftX ? AnalogValue > 0 ? ImGuiKey_GamepadLStickRight : ImGuiKey_GamepadLStickLeft 
+						: InAnalogInputEvent.GetKey() == EKeys::Gamepad_LeftY ? AnalogValue > 0 ? ImGuiKey_GamepadLStickUp : ImGuiKey_GamepadLStickDown 
+						: InAnalogInputEvent.GetKey() == EKeys::Gamepad_RightX ? AnalogValue > 0 ? ImGuiKey_GamepadRStickRight : ImGuiKey_GamepadRStickLeft 
+						: InAnalogInputEvent.GetKey() == EKeys::Gamepad_RightY ? AnalogValue > 0 ? ImGuiKey_GamepadRStickUp : ImGuiKey_GamepadRStickDown
+						: InAnalogInputEvent.GetKey() == EKeys::Gamepad_LeftTriggerAxis ? ImGuiKey_GamepadL2
+						: InAnalogInputEvent.GetKey() == EKeys::Gamepad_RightTriggerAxis ? ImGuiKey_GamepadR2
+						: ImGuiKey_None;
+	
+	if (GamepadKey != ImGuiKey_None)
+	{
+		ImGui::GetIO().AddKeyAnalogEvent(GamepadKey, true, FMath::Abs(AnalogValue));
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
+}
 
 #endif // NETIMGUI_LOCALDRAW_ENABLED
 

@@ -92,22 +92,10 @@ void FNetImguiSlateElement::DrawRenderThread(FRHICommandListImmediate& RHICmdLis
 		TShaderMapRef<FDearImguiPS> PixelShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 		FRHIResourceCreateInfo 		CreateInfoIdx(TEXT("FImguiIndexBuffer"), &mLocalDrawData.IdxBuffer);
 		FRHIResourceCreateInfo 		CreateInfoVtx(TEXT("FImguiVertexBuffer"), &mLocalDrawData.VtxBuffer);
-		FBufferRHIRef IndexBufferRHI 	= RHICmdList.CreateIndexBuffer(sizeof(ImDrawIdx), mLocalDrawData.IdxBuffer.GetResourceDataSize(), BUF_Volatile, CreateInfoIdx);
-		FBufferRHIRef VertexBufferRHI 	= RHICmdList.CreateVertexBuffer(mLocalDrawData.VtxBuffer.GetResourceDataSize(), BUF_Volatile | BUF_ShaderResource, CreateInfoVtx);
 		
 		if (VertexShader.IsValid() && PixelShader.IsValid())
 		{
 			FGraphicsPipelineStateInitializer GraphicsPSOInit;
-			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
-			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI();
-			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GImguiVertexDeclaration.VertexDeclarationRHI;
-			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader.GetVertexShader();
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader.GetPixelShader();
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit, 0);
-			
 			float L = FMath::Floor(CullingRect.Left);
 			float R = FMath::Floor(CullingRect.Right);
 			float T = FMath::Floor(CullingRect.Top);
@@ -121,14 +109,34 @@ void FNetImguiSlateElement::DrawRenderThread(FRHICommandListImmediate& RHICmdLis
 				FVector(0.f, 			0.f, 				0.5f),
 				FVector(-1.f,			1.f, 				0.5f)
 			);
+
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI();
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GImguiVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader.GetVertexShader();
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader.GetPixelShader();
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit, 0);
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 3
+			FRHIBatchedShaderParameters& BatchedParameters = RHICmdList.GetScratchShaderParameters();
+			SetShaderValue(BatchedParameters, VertexShader->ImguiViewProjection, FMatrix44f(ProjectionMatrix));
+			SetShaderValue(BatchedParameters, VertexShader->ImguiParameters, ImguiParams);
+			RHICmdList.SetBatchedShaderParameters(RHICmdList.GetBoundVertexShader(), BatchedParameters);
+			FBufferRHIRef IndexBufferRHI 	= RHICmdList.CreateIndexBuffer(sizeof(ImDrawIdx), mLocalDrawData.IdxBuffer.GetResourceDataSize(), BUF_Volatile, CreateInfoIdx);
+			FBufferRHIRef VertexBufferRHI 	= RHICmdList.CreateVertexBuffer(mLocalDrawData.VtxBuffer.GetResourceDataSize(), BUF_Volatile | BUF_ShaderResource, CreateInfoVtx);
+#else
+			SetShaderValue(RHICmdList, VertexShader.GetVertexShader(), VertexShader->ImguiViewProjection, FMatrix44f(ProjectionMatrix));
+			SetShaderValue(RHICmdList, VertexShader.GetVertexShader(), VertexShader->ImguiParameters, ImguiParams);
+			FBufferRHIRef IndexBufferRHI 	= RHICreateIndexBuffer(sizeof(ImDrawIdx), mLocalDrawData.IdxBuffer.GetResourceDataSize(), BUF_Volatile, CreateInfoIdx);
+			FBufferRHIRef VertexBufferRHI 	= RHICreateVertexBuffer(mLocalDrawData.VtxBuffer.GetResourceDataSize(), BUF_Volatile | BUF_ShaderResource, CreateInfoVtx);
+#endif
+			
 			RHICmdList.SetViewport(L, T, 0, R, B, 1);
 			RHICmdList.SetStreamSource(0, VertexBufferRHI, 0);
 
-			FRHIBatchedShaderParameters& BatchedParameters = RHICmdList.GetScratchShaderParameters();
-			SetShaderValue(BatchedParameters, VertexShader->ImguiViewProjection, FMatrix44f(ProjectionMatrix), 0);
-			SetShaderValue(BatchedParameters, VertexShader->ImguiParameters, ImguiParams, 0);
-			RHICmdList.SetBatchedShaderParameters(RHICmdList.GetBoundVertexShader(), BatchedParameters);
-			
 			for (int i(0); i<mLocalDrawData.CmdLists.Num(); ++i)
 			{
 				const LocalImguiData::DrawList& cmdList = mLocalDrawData.CmdLists[i];
@@ -136,10 +144,11 @@ void FNetImguiSlateElement::DrawRenderThread(FRHICommandListImmediate& RHICmdLis
 				{
 					// Project scissor/clipping rectangles into framebuffer space
 					// Note 'ImDrawCmd::UserCallback' not supported for now
-					ImVec2 clip_min(FMath::Min(L + cmdDraw.ClipRect.x, R),
-									FMath::Min(T + cmdDraw.ClipRect.y, B));
-					ImVec2 clip_max(FMath::Min(L + cmdDraw.ClipRect.z, R),
-									FMath::Min(T + cmdDraw.ClipRect.w, B));
+					ImVec2 clip_min(FMath::Min(L + FMath::Max(0.f, cmdDraw.ClipRect.x), R),
+									FMath::Min(T + FMath::Max(0.f, cmdDraw.ClipRect.y), B));
+					ImVec2 clip_max(FMath::Min(L + FMath::Max(0.f, cmdDraw.ClipRect.z), R),
+									FMath::Min(T + FMath::Max(0.f, cmdDraw.ClipRect.w), B));
+
 					if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y || cmdDraw.UserCallback != nullptr)
 						continue;
 
