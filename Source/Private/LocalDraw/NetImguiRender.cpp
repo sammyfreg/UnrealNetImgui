@@ -3,18 +3,15 @@
 #include "NetImguiModule.h"
 #include "CoreMinimal.h"
 
-#if NETIMGUI_LOCALDRAW_ENABLED || 1 //SF Find solution to this. Using  1 to see code in editor
+#if NETIMGUI_LOCALDRAW_ENABLED
 
 #include "NetImguiRender.h"
 #include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
 #include "ShaderParameterStruct.h"
 #include "RHIStaticStates.h" // TStaticRasterizerState
-//#include "Engine/Texture2D.h"
 
 #include "CommonRenderResources.h"
-
-#pragma optimize("", off) //SF
 
 class FImGuiVertexDeclaration : public FRenderResource
 {
@@ -211,4 +208,3 @@ bool FNetImguiSlateElement::Update(FTextureRHIRef fontTexture, FTextureRHIRef bl
 
 #endif // NETIMGUI_LOCALDRAW_ENABLED
 
-#pragma optimize("", on) //SF

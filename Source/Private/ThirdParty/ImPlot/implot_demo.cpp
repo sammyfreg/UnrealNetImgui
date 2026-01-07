@@ -338,7 +338,8 @@ void Demo_FilledLinePlots() {
             ImGui::DragFloat("##Ref",&fill_ref, 1, -100, 500);
         }
     }
-
+//@sammyfreg - DISABLED, Compile error
+#if 0
     if (ImPlot::BeginPlot("Stock Prices")) {
         ImPlot::SetupAxes("Days","Price");
         ImPlot::SetupAxesLimits(0,100,0,500);
@@ -356,6 +357,7 @@ void Demo_FilledLinePlots() {
         }
         ImPlot::EndPlot();
     }
+#endif
 }
 
 //-----------------------------------------------------------------------------

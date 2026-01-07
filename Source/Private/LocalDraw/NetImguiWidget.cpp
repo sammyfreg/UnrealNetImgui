@@ -4,11 +4,9 @@
 #include "CoreMinimal.h"
 
 #if NETIMGUI_LOCALDRAW_ENABLED || 1 //SF
-#include "Slate/Public/Framework/Application/SlateApplication.h"
-#include "Slate/Public/Framework/Application/SlateUser.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Application/SlateUser.h"
 #include "NetImguiRender.h"
-
-#pragma optimize("", off) //SF
 
 //=================================================================================================
 // GET DRAW VERTICAL OFFSET (inline)
@@ -417,4 +415,3 @@ FReply SNetImguiWidget::OnAnalogValueChanged(const FGeometry& MyGeometry, const 
 
 #endif // NETIMGUI_LOCALDRAW_ENABLED
 
-#pragma optimize("", on) //SF

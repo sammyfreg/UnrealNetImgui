@@ -55,8 +55,6 @@
 static ImUnrealCommand::CommandContext* spImUnrealCommandContext = nullptr;
 #endif
 
-#pragma optimize("", off) //SF
-
 //=================================================================================================
 // FontCreationCallback
 //-------------------------------------------------------------------------------------------------
@@ -598,8 +596,7 @@ bool FNetImguiModule::IsInputActive()const
 	{
 		return true;
 	}
-
-	//SF
+	return false; //SF
 }
 
 // Font display
@@ -742,4 +739,3 @@ IMPLEMENT_MODULE(FNetImguiModule, NetImgui)
 
 #undef LOCTEXT_NAMESPACE
 
-#pragma optimize("", on) //SF

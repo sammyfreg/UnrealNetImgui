@@ -13,8 +13,8 @@
 #include "SystemSettings.h"
 #include "Engine/GameViewportClient.h"
 #include "Slate/SceneViewport.h"
-#include "Slate/Public/Framework/Application/SlateApplication.h" //SF
-#include "Slate/Public/Framework/Application/SlateUser.h" //SF
+#include "Framework/Application/SlateApplication.h" //SF
+#include "Framework/Application/SlateUser.h" //SF
 #include "ThirdParty/NetImgui/NetImgui_Api.h"
 
 #if WITH_EDITOR
@@ -23,8 +23,6 @@
 #include "SLevelViewport.h"
 #include "LevelEditor.h"
 #endif
-
-#pragma optimize("", off) //SF
 
 //=================================================================================================
 // NetImgui to Unreal Keys mapping
@@ -490,4 +488,3 @@ void FNetImguiLocalDraw::FLocalFontSuport::Update(float wantedFontDPIScale)
 
 #endif //NETIMGUI_ENABLED
 
-#pragma optimize("", on) //SF

@@ -83,7 +83,7 @@ private:
 	FTextureRHIRef 								BlackTexture; //SF TODO move to render file?
 	FLocalFontSuport							LocalFontSupport;
 	TMap<FName, TSharedPtr<SNetImguiWidget>> 	WidgetsMap; //SF change to unique?
-	TMap<const ImGuiContext*, TWeakPtr<SNetImguiWidget>> 	WidgetsMap;
+	//TMap<const ImGuiContext*, TWeakPtr<SNetImguiWidget>> 	WidgetsMap;
 	TSharedPtr<IInputProcessor>					InputProcessor;
 	FWantImguiInGameViewFN						WantImguiInGameViewFN;
 #if WITH_EDITOR
