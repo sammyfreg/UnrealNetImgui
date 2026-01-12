@@ -601,7 +601,7 @@ bool FNetImguiModule::IsInputActive()const
 
 // Font display
 #if 0
-void FGbxImGuiDebuggerSamples::ShowDemoFont()
+void FImGuiDebuggerSamples::ShowDemoFont()
 {
 	ImGui::SetNextWindowPos(ImVec2(32, 48), ImGuiCond_Once);
 	ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Once);
@@ -616,7 +616,7 @@ void FGbxImGuiDebuggerSamples::ShowDemoFont()
 }
 
 //-----------------------------------------------------------------------------
-void FGbxImGuiDebuggerSamples::ShowDemoFont_Content()
+void FImGuiDebuggerSamples::ShowDemoFont_Content()
 {
 	ImFontAtlas& FontAtlas = *ImGui::GetIO().Fonts;
 	int fontSelected = static_cast<int>(SampleFont_Font);
@@ -686,7 +686,7 @@ void FGbxImGuiDebuggerSamples::ShowDemoFont_Content()
 }
 
 //-----------------------------------------------------------------------------
-void FGbxImGuiDebuggerSamples::ShowDemoFont_Table(const char* IconsName, uint32_t IconUnicodeFirst, uint32_t IconUnicodeLast, uint32_t ExcludeUnicodeFirst, uint32_t ExcludeUnicodeLast)
+void FImGuiDebuggerSamples::ShowDemoFont_Table(const char* IconsName, uint32_t IconUnicodeFirst, uint32_t IconUnicodeLast, uint32_t ExcludeUnicodeFirst, uint32_t ExcludeUnicodeLast)
 {
 	const ImFont& font = *ImGui::GetFont();
 	if (ImGui::CollapsingHeader(IconsName))

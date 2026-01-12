@@ -3,7 +3,7 @@
 #include "NetImguiModule.h"
 #include "CoreMinimal.h"
 
-#if NETIMGUI_LOCALDRAW_ENABLED || 1//SF
+#if NETIMGUI_LOCALDRAW_ENABLED
 
 #include "Engine/Engine.h"
 #include "NetImguiLocalDraw.h"
@@ -16,6 +16,7 @@
 #include "Framework/Application/SlateApplication.h" //SF
 #include "Framework/Application/SlateUser.h" //SF
 #include "ThirdParty/NetImgui/NetImgui_Api.h"
+#include "NetImguiSettings.h"
 
 #if WITH_EDITOR
 #include "Slate/SceneViewport.h"
