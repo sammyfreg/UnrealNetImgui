@@ -98,17 +98,21 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 		io.ConfigFlags		= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad;
 		io.BackendFlags		= ImGuiBackendFlags_HasGamepad;
 
-		if (!HasInput())
+		static const UNetImguiSettings* NetImguiSettings = GetDefault<UNetImguiSettings>();
+	#if WITH_EDITOR 
+		bool UseInputLock	= ParentEditorViewport ? NetImguiSettings->LocalInputLockEditor : NetImguiSettings->LocalInputLockGame;
+	#else
+		bool UseInputLock	= NetImguiSettings->LocalInputLockGame;
+	#endif
+
+		// Ignore mouse when we do not have access to it
+		if(!HasInput() && UseInputLock)
 		{
 			io.ClearEventsQueue();
 			io.ClearInputCharacters();
 			io.ClearInputKeys();
 			io.AddMousePosEvent(-1.f, -1.f);
 		}
-		// Ignore mouse when we do not have access to it
-		//if (FSlateApplication::Get().GetCursorUser().Get()->HasAnyCapture()){
-		//	io.AddMousePosEvent(-1.f, -1.f);
-		//}
 		else{
 			const FSlateRenderTransform screenToImguiCoord = AllottedGeometry.GetAccumulatedRenderTransform();
 			FVector2f mousePos	= screenToImguiCoord.Inverse().TransformPoint(FSlateApplication::Get().GetCursorPos());
@@ -116,9 +120,9 @@ void SNetImguiWidget::Tick(const FGeometry& AllottedGeometry, const double InCur
 			mousePos 			*= AllottedGeometry.Scale;
 			io.AddMousePosEvent(mousePos.X, mousePos.Y);
 		}
-		
+
 		// Configure this widget as passthrough when no mouse events are needed
-		SetVisibility(io.WantCaptureMouse ? EVisibility::Visible : EVisibility::HitTestInvisible);
+		SetVisibility(io.WantCaptureMouse || (HasInput() && UseInputLock) ? EVisibility::Visible : EVisibility::HitTestInvisible);
 		
 		// We share 1 Font Atlas between all local views, using the highest DPI scaling detected
 		// We then size down the font drawing to match this view expected DPI
@@ -255,7 +259,7 @@ void SNetImguiWidget::Update(UGameViewportClient* GameViewport, bool Visible)
 	}
 	
 	//SF
-	 if ( ParentGameViewport->IsFocused(ParentGameViewport->GetGameViewport()->GetViewport()) && !HasInput() )
+	if ( ParentGameViewport->IsFocused(ParentGameViewport->GetGameViewport()->GetViewport()) && !HasInput() )
 	{
 		FocusedWidgetLast	= FSlateApplication::Get().GetUserFocusedWidget(0);
 	}

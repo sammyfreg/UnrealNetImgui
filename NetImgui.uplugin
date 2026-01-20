@@ -17,7 +17,8 @@
 		{
 			"Name": "NetImgui",
 			"Type": "Runtime",
-			"LoadingPhase": "PostConfigInit"
+			"LoadingPhase": "PostConfigInit",
+			"AdditionalDependencies": ["DeveloperSettings"]
 		}
 	]
 }

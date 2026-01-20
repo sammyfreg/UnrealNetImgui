@@ -1,7 +1,5 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "NetImguiSettings.h"
-#include "UObject/UnrealType.h"
 
 //-----------------------------------------------------------------------------
 // Global
@@ -70,43 +68,10 @@ TAutoConsoleVariable<uint32> CVarNetImguiLocalShowEditor(
 #endif
 
 UNetImguiSettings::UNetImguiSettings()
+: RemoteServerName(TEXT(""))
+, RemoteServerPort(NETIMGUI_CONNECTPORT)
+, RemoteClientPort(NETIMGUI_LISTENPORT_GAME)
 {
-	Show						= true;
-
-	RemoteShow					= true;
-	RemoteHideLocal				= false;
-	RemoteServerName			= TEXT("");
-	RemoteServerPort			= NETIMGUI_CONNECTPORT;
-	RemoteClientPort			= NETIMGUI_LISTENPORT_GAME;
-	
-	LocalUseOnScreenDebugFlag	= true;
-	LocalVisibilityGame			= ENetImguiVisibility::Always;
-	LocalVisibilityEditor		= ENetImguiVisibility::Always;
+	CategoryName = "Plugins";
 }
 
-void UNetImguiSettings::PostInitProperties()
-{
-	Super::PostInitProperties();
-#if WITH_EDITOR
-	if (IsTemplate())
-	{
-		ImportConsoleVariableValues();
-	}
-#endif
-}
-
-FName UNetImguiSettings::GetCategoryName() const
-{
-	return FName(TEXT("Plugins"));
-}
-
-#if WITH_EDITOR
-void UNetImguiSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-	if (PropertyChangedEvent.Property)
-	{
-		ExportValuesToConsoleVariables(PropertyChangedEvent.Property);
-	}
-}
-#endif
